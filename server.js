@@ -1,160 +1,93 @@
-require("dotenv").config({
-  // path: process.env.NODE_ENV === "production" ? ".env.production" : ".env",
-  path: process.env.NODE_ENV === ".env",
-});
-const express = require("express");
-const cors = require("cors");
-const helmet = require("helmet");
-const morgan = require("morgan");
-const path = require("path");
-const rateLimit = require("express-rate-limit");
-const mongoSanitize = require("express-mongo-sanitize");
-const xss = require("xss-clean");
-const hpp = require("hpp");
-const cookieParser = require("cookie-parser");
-const logger = require("./utils/logger");
-const User = require("./models/User.model");
-const bcrypt = require("bcryptjs");
+require('dotenv').config({ path: '.env.development' });
+const express = require('express');
+const morgan = require('morgan');
+const cors = require('cors');
+const helmet = require('helmet');
+// const xss = require('xss-clean');
+const rateLimit = require('express-rate-limit');
+const hpp = require('hpp');
+const { connectDB, sequelize } = require('./config/db');
+const errorHandler = require('./middlewares/errorMiddleware');
 
-// import User from './models/User.model';
+// Route files
+const authRoutes = require('./routes/userRoutes');
+const userRoutes = require('./routes/userRoutes');
 
 const app = express();
 
-// Database connection
-const connectDB = require("./config/db");
+// Connect to database
 connectDB();
 
-// Middleware
-app.use(express.json({ limit: "10kb" }));
-app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
-// app.use(cors());
-const allowedOrigins = ["http://localhost:5173", "https://ngwater.app"];
+// Dev logging middleware
+if (process.env.NODE_ENV === 'development') {
+  app.use(morgan('dev'));
+}
 
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      // allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      } else {
-        return callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true,
-  })
-);
-
+// Set security headers
 app.use(helmet());
 
-app.use((req, res, next) => {
-  console.log(`[${req.method}] ${req.originalUrl}`);
-  next();
-});
-
-if (process.env.NODE_ENV === "development") {
-  app.use(morgan("dev"));
-}
+// Prevent XSS attacks
+// app.use(xss());
 
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: 100
 });
-app.use("/api", limiter);
+app.use(limiter);
 
-// Data sanitization
-// Custom sanitization function
-app.use((req, res, next) => {
-  const sanitize = (obj) => {
-    if (!obj) return obj;
-    return Object.keys(obj).reduce((acc, key) => {
-      // Remove any keys starting with $ (Mongo operators)
-      if (key.startsWith("$")) return acc;
-      acc[key] = typeof obj[key] === "object" ? sanitize(obj[key]) : obj[key];
-      return acc;
-    }, {});
-  };
+// Prevent http param pollution
+app.use(hpp());
 
-  req.query = sanitize(req.query);
-  req.body = sanitize(req.body);
-  req.params = sanitize(req.params);
-  next();
+// Enable CORS
+app.use(cors());
+
+// Body parser
+app.use(express.json());
+
+// Mount routers
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/users', userRoutes);
+
+// Test routes
+app.get('/', (req, res) => {
+  res.send(`
+    <h1>API Status: Running</h1>
+    <h2>Endpoints:</h2>
+    <ul>
+      <li><a href="/xampp-test">Database Test</a></li>
+      <li><a href="/test-user">User Test</a></li>
+    </ul>
+  `);
 });
 
-// app.use(xss());
-// app.use(hpp());
 
-// Routes
-app.use("/api/v1/auth", require("./routes/auth.routes"));
-app.use("/api/v1/projects", require("./routes/project.routes"));
-app.use("/api/v1/admin", require("./routes/admin.routes"));
-app.use("/api/v1/uploads", require("./routes/upload.routes"));
-app.use("/api/v1/reports", require("./routes/report.routes"));
+app.get('/xampp-test', async (req, res, next) => {
+  try {
+    const [results] = await sequelize.query("SELECT 1+1 AS result");
+    res.json({
+      status: 'success',
+      database: 'connected',
+      result: results[0].result
+    });
+  } catch (error) {
+    next(error); // Let the error middleware handle it
+  }
+});
 
-// Error handling middleware
-app.use(require("./middleware/errorHandler"));
+// Error handler middleware
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
 const server = app.listen(PORT, () => {
-  logger.info(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+  console.log(`
+  Server running on http://localhost:${PORT}
+  XAMPP MySQL: ${process.env.DB_HOST}:${process.env.DB_PORT}
+  `);
 });
 
-// Handle unhandled promise rejections
-process.on("unhandledRejection", (err, promise) => {
-  logger.error(`Error: ${err.message}`);
+process.on('unhandledRejection', (err, promise) => {
+  console.log(`Error: ${err.message}`);
   server.close(() => process.exit(1));
 });
-process.on("uncaughtException", (err) => {
-  logger.error(`Unhandled Exception: ${err.message}`);
-  server.close(() => process.exit(1));
-});
-
-// Admin creation logic
-// const createAdminIfNotExists = async () => {
-//   try {
-//     const existingAdmin = await User.findOne({ role: 'admin' });
-//     if (!existingAdmin) {
-//       const password = 'admin105'; // Set your admin password
-//       const hashedPassword = await bcrypt.hash(password, 12);
-
-//       const admin = new User({
-//         name: 'myadmin',
-//         email: 'admin@ngw.com',
-//         phoneNumber: '1234567890',
-//         password: hashedPassword,
-//         role: 'admin',
-//         specialization: 'admin',
-//         licenseType: 'admin',
-//         licenseBody: 'Admin License Body',
-//         licenseNumber: 'Admin License Number',
-//         state: 'Admin State',
-//         userLGA: 'Admin LGA',
-//         address: 'Admin Address',
-//         isVerified: true, // Optional: Make admin verified
-//       });
-
-//       await admin.save();
-//       logger.info('Admin account created successfully.');
-//     } else {
-//       logger.info('Admin account already exists.');
-//     }
-//   } catch (err) {
-//     logger.error('Error creating admin:', err);
-//   }
-// };
-
-// createAdminIfNotExists();
-
-// const deleteAdmin = async () => {
-//   try {
-//     const result = await User.deleteMany({ role: 'admin' });
-//     logger.info(`Deleted ${result.deletedCount} admin(s).`);
-//   } catch (err) {
-//     logger.error(`Error deleting admin(s): ${err.message}`);
-//   }
-// };
-
-// deleteAdmin();

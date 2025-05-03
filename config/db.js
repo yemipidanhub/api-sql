@@ -1,25 +1,37 @@
-// config/db.js
 const { Sequelize } = require('sequelize');
-const logger = require('../utils/logger');
 
 const sequelize = new Sequelize(
-  process.env.SQL_DB_NAME,
-  process.env.SQL_DB_USER,
-  process.env.SQL_DB_PASSWORD,
+  process.env.DB_NAME,
+  process.env.DB_USER,
+  process.env.DB_PASSWORD, 
   {
-    host: process.env.SQL_DB_HOST,
-    dialect: 'mysql', // or 'postgres', 'sqlite', etc.
-    logging: false, // disable SQL logging, or set to console.log to enable
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT || 3306,
+    dialect: 'mysql',
+    logging: console.log, // Enable to see SQL queries
+    dialectOptions: {
+      // XAMPP-specific options
+      socketPath: '', // Only if using socket connection
+      supportBigNumbers: true,
+      bigNumberStrings: true
+    },
+    pool: {
+      max: 5,
+      min: 0,
+      acquire: 30000,
+      idle: 10000
+    }
   }
 );
 
+// Test connection function
 const connectDB = async () => {
   try {
     await sequelize.authenticate();
-    console.log('SQL Database Connection Established');
-    logger.info(`SQL Database Connected: ${process.env.SQL_DB_HOST}`);
-  } catch (err) {
-    logger.error(`Error: ${err.message}`);
+    console.log('✅ XAMPP MySQL Connection Established');
+    return sequelize;
+  } catch (error) {
+    console.error('❌ XAMPP Connection Failed:', error.message);
     process.exit(1);
   }
 };
