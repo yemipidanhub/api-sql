@@ -1,4 +1,7 @@
-require('dotenv').config({ path: '.env.development' });
+require('dotenv').config({
+  path: `.env.${process.env.NODE_ENV || 'development'}`
+});
+
 const express = require('express');
 const morgan = require('morgan');
 const cors = require('cors');
@@ -10,7 +13,7 @@ const { connectDB, sequelize } = require('./config/db');
 const errorHandler = require('./middlewares/errorMiddleware');
 
 // Route files
-const authRoutes = require('./routes/userRoutes');
+const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 
 const app = express();
@@ -40,7 +43,12 @@ app.use(limiter);
 app.use(hpp());
 
 // Enable CORS
-app.use(cors());
+const corsOptions = {
+  origin: 'http://localhost:5173',
+  credentials: true
+};
+app.use(cors(corsOptions));
+
 
 // Body parser
 app.use(express.json());

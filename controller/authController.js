@@ -29,7 +29,7 @@ exports.signup = catchAsync(async (req, res, next) => {
     email,
     phoneNumber,
     password,
-    passwordConfirm,
+    // passwordConfirm,
     role,
     specialization,
     licenseType,
@@ -40,9 +40,9 @@ exports.signup = catchAsync(async (req, res, next) => {
     address
   } = req.body;
 
-  if (password !== passwordConfirm) {
-    return next(new AppError('Passwords do not match', 400));
-  }
+  // if (password !== passwordConfirm) {
+  //   return next(new AppError('Passwords do not match', 400));
+  // }
 
   const newUser = await User.create({
     name,
