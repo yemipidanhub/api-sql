@@ -23,7 +23,6 @@ const app = express();
 
 // Connect to database
 connectDB();
-
 // Dev logging middleware
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
@@ -99,6 +98,7 @@ app.get('/xampp-test', async (req, res, next) => {
 
 // Error handler middleware
 app.use(errorHandler);
+
 
 const PORT = process.env.PORT || 5000;
 

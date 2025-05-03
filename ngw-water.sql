@@ -1,3 +1,16 @@
+-- First create the users table that all forms reference
+-- CREATE TABLE users (
+--     id CHAR(36) PRIMARY KEY,
+--     username VARCHAR(50) NOT NULL UNIQUE,
+--     email VARCHAR(255) NOT NULL UNIQUE,
+--     password_hash VARCHAR(255) NOT NULL,
+--     role ENUM('admin', 'field_agent', 'consultant', 'client') NOT NULL,
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+--     deleted_at TIMESTAMP NULL
+-- ) ENGINE=InnoDB;
+
+-- Then create form_stage_a with proper UUID handling
 CREATE TABLE form_stage_a (
     id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
     user_id CHAR(36) NOT NULL,
@@ -33,8 +46,7 @@ CREATE TABLE form_stage_a (
     INDEX idx_stage_a_deleted (deleted_at)
 ) ENGINE=InnoDB;
 
-
-
+-- Create form_stage_b with reference to stage_a
 CREATE TABLE form_stage_b (
     id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
     form_stage_a_id CHAR(36) NOT NULL,
@@ -74,7 +86,7 @@ CREATE TABLE form_stage_b (
     INDEX idx_stage_b_deleted (deleted_at)
 ) ENGINE=InnoDB;
 
-
+-- Create form_stage_c with reference to stage_b
 CREATE TABLE form_stage_c (
     id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
     form_stage_b_id CHAR(36) NOT NULL,
@@ -117,132 +129,3 @@ CREATE TABLE form_stage_c (
     INDEX idx_stage_c_status (status),
     INDEX idx_stage_c_deleted (deleted_at)
 ) ENGINE=InnoDB;
-
-
-CREATE TABLE file_uploads (
-    id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
-    form_stage_c_id CHAR(36) NOT NULL,
-    file_type ENUM('lab_test_certificate', 'raw_lab_sheet', 'sampling_point_photo') NOT NULL,
-    file_path VARCHAR(255) NOT NULL,
-    original_name VARCHAR(255) NOT NULL,
-    mime_type VARCHAR(100) NOT NULL,
-    size BIGINT NOT NULL,
-    uploaded_by CHAR(36) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMP NULL,
-    FOREIGN KEY (form_stage_c_id) REFERENCES form_stage_c(id) ON DELETE CASCADE,
-    FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE CASCADE,
-    INDEX idx_file_uploads_form (form_stage_c_id),
-    INDEX idx_file_uploads_type (file_type),
-    INDEX idx_file_uploads_deleted (deleted_at)
-) ENGINE=InnoDB;
-
-
--- create new form
-DELIMITER //
-CREATE PROCEDURE create_new_form(
-    IN p_user_id CHAR(36),
-    IN p_project_type VARCHAR(50),
-    OUT p_form_id CHAR(36)
-)
-BEGIN
-    DECLARE new_form_id CHAR(36);
-    
-    -- Create Stage A
-    INSERT INTO form_stage_a (
-        user_id,
-        project_type,
-        status
-    ) VALUES (
-        p_user_id,
-        p_project_type,
-        'draft'
-    );
-    
-    SET new_form_id = LAST_INSERT_ID();
-    SET p_form_id = new_form_id;
-    
-    -- Return the new form ID
-    SELECT new_form_id AS form_id;
-END //
-DELIMITER ;
-
-
--- submit form
-DELIMITER //
-CREATE PROCEDURE submit_form(
-    IN p_form_stage_c_id CHAR(36),
-    IN p_user_id CHAR(36)
-)
-BEGIN
-    DECLARE form_exists INT;
-    DECLARE current_status VARCHAR(50);
-    
-    -- Check if form exists and belongs to user
-    SELECT COUNT(*), status INTO form_exists, current_status
-    FROM form_stage_c
-    WHERE id = p_form_stage_c_id AND user_id = p_user_id;
-    
-    IF form_exists = 0 THEN
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Form not found or access denied';
-    ELSEIF current_status != 'completed' THEN
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Form is not completed';
-    ELSE
-        -- Update status to submitted
-        UPDATE form_stage_c 
-        SET status = 'submitted', 
-            updated_at = CURRENT_TIMESTAMP
-        WHERE id = p_form_stage_c_id;
-        
-        -- Return success
-        SELECT 'Form submitted successfully' AS message;
-    END IF;
-END //
-DELIMITER ;
-
-
--- form completeion status view
-CREATE VIEW form_completion_status AS
-SELECT 
-    a.id AS form_id,
-    a.project_type,
-    a.status AS stage_a_status,
-    b.status AS stage_b_status,
-    c.status AS stage_c_status,
-    CASE 
-        WHEN c.status = 'submitted' THEN 'Complete'
-        WHEN c.status = 'draft' AND b.id IS NOT NULL THEN 'Stage B Complete'
-        WHEN b.status = 'draft' AND a.id IS NOT NULL THEN 'Stage A Complete'
-        ELSE 'Incomplete'
-    END AS overall_status,
-    a.created_at,
-    a.updated_at
-FROM 
-    form_stage_a a
-LEFT JOIN 
-    form_stage_b b ON a.id = b.form_stage_a_id
-LEFT JOIN 
-    form_stage_c c ON b.id = c.form_stage_b_id;
-
--- water qualty/stage C result view
-CREATE VIEW water_quality_results AS
-SELECT 
-    c.id,
-    c.project_id,
-    c.project_name,
-    c.water_type,
-    c.state,
-    c.lga,
-    c.community,
-    c.is_safe,
-    c.next_step,
-    JSON_EXTRACT(c.parameters, '$[*].parameter') AS parameters_tested,
-    c.submission_date,
-    u.full_name AS submitted_by
-FROM 
-    form_stage_c c
-JOIN 
-    users u ON c.user_id = u.id
-WHERE 
-    c.status = 'submitted' 
-    AND c.deleted_at IS NULL;

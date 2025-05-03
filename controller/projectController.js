@@ -1,6 +1,6 @@
-const { FormStageA } = require('../models/stageA.model');
-const {FormStageB} = require('../models/stageB.model');
-const { FormStageC } = require('../models/stageC.model');
+const { FormStageA } = require('../models/StageA.model');
+const {FormStageB} = require('../models/StageB.model');
+const { FormStageC } = require('../models/StageC.model');
 
 const { saveFile, deleteFile } = require('./fileController');
 const { v4: uuidv4 } = require('uuid');

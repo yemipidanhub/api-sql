@@ -1,6 +1,7 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/db'); 
 
+module.exports = (sequelize, DataTypes) => {
 const FormStageB = sequelize.define('FormStageB', {
   id: {
     type: DataTypes.UUID,
@@ -117,4 +118,9 @@ const FormStageB = sequelize.define('FormStageB', {
   paranoid: true
 });
 
-module.exports = FormStageB;
+FormStageB.associate = (models) => {
+  FormStageB.belongsTo(models.Project, { foreignKey: 'projectId' });
+};
+
+return FormStageB;
+};
