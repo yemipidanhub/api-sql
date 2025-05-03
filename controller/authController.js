@@ -12,15 +12,16 @@ const signToken = id => {
   };
 
 const createSendToken = (user, statusCode, res) => {
-  const token = signToken(user.id);
-  
-  res.status(statusCode).json({
-    status: 'success',
-    token,
-    data: {
-      user
-    }
-  });
+    const token = signToken(user.id);
+
+    res.status(statusCode).json({
+        status: 'success',
+        token,
+        data: {
+            user
+        },
+        redirectUrl: '/userdashboard' // This will be the page where you want the user to go after successful sign-up
+    });
 };
 
 exports.signup = catchAsync(async (req, res, next) => {

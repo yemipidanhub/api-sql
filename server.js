@@ -1,5 +1,5 @@
 require('dotenv').config({
-  path: `.env.${process.env.NODE_ENV || 'development'}`
+  path: `.env.production`,
 });
 
 const express = require('express');
@@ -44,7 +44,7 @@ app.use(hpp());
 
 // Enable CORS
 const corsOptions = {
-  origin: 'http://localhost:5173',
+  origin: ['https://ngwater.app', 'https://www.ngwater.app'],
   credentials: true
 };
 app.use(cors(corsOptions));
