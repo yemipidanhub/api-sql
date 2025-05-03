@@ -11,6 +11,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const hpp = require('hpp');
 const { connectDB, sequelize } = require('./config/db');
+const formRoutes = require('./routes/projectRoutes');
 const errorHandler = require('./middlewares/errorMiddleware');
 
 // Route files
@@ -21,7 +22,6 @@ const app = express();
 
 // Connect to database
 connectDB();
-
 // Dev logging middleware
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
@@ -53,10 +53,21 @@ app.use(cors(corsOptions));
 
 // Body parser
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Mount routers
+// Static files (for uploaded files)
+app.use('/uploads', express.static('uploads'));
+
+// Routes
+app.use('/api/forms', formRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
+
+
+// Health check
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'OK' });
+});
 
 // Test routes
 app.get('/', (req, res) => {
@@ -87,6 +98,7 @@ app.get('/xampp-test', async (req, res, next) => {
 // Error handler middleware
 app.use(errorHandler);
 
+
 const PORT = process.env.PORT || 5000;
 
 const server = app.listen(PORT, () => {
@@ -95,6 +107,7 @@ const server = app.listen(PORT, () => {
   XAMPP MySQL: ${process.env.DB_HOST}:${process.env.DB_PORT}
   `);
 });
+
 
 process.on('unhandledRejection', (err, promise) => {
   console.log(`Error: ${err.message}`);

@@ -24,6 +24,17 @@ const sequelize = new Sequelize(
   }
 );
 
+
+sequelize.sync({ alter: true }) // or { force: true } to drop & recreate
+  .then(() => {
+    console.log('✅ Database synced successfully');
+  })
+  .catch(err => {
+    console.error('❌ Sequelize sync failed:', err);
+  });
+
+
+
 // Test connection function
 const connectDB = async () => {
   try {
@@ -36,4 +47,4 @@ const connectDB = async () => {
   }
 };
 
-module.exports = { connectDB, sequelize };
+module.exports = { sequelize, connectDB };
