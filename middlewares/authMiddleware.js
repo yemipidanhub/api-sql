@@ -1,7 +1,26 @@
 const jwt = require('jsonwebtoken');
 const { promisify } = require('util');
-const User = require('../models/User');
+const User = require('../models/User.model');
 const AppError = require('../utils/appError');
+
+
+exports.authenticate = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return next(new AppError('Authentication required', 401));
+  }
+  
+  const token = authHeader.split(' ')[1];
+  
+  try {
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = payload;  // Attach user data to the request object
+    next();
+  } catch (err) {
+    return next(new AppError('Invalid or expired token', 401));  // Ensure next is used for error handling
+  }
+};
 
 exports.protect = async (req, res, next) => {
   try {
