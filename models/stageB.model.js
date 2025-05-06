@@ -115,7 +115,8 @@ const FormStageB = sequelize.define('FormStageB', {
   }
 }, {
   timestamps: true,
-  paranoid: true
+  paranoid: true,
+  tableName: 'form_stage_b'
 });
 
 FormStageB.associate = (models) => {
