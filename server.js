@@ -45,7 +45,7 @@ app.use(hpp());
 
 // Enable CORS
 const corsOptions = {
-  origin: ['https://ngwater.app', 'https://www.ngwater.app', 'http://localhost:5174'],
+  origin: ['https://ngwater.app', 'https://www.ngwater.app', 'http://localhost:5173'],
   credentials: true
 };
 app.use(cors(corsOptions));

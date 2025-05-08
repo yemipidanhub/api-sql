@@ -25,13 +25,13 @@ const sequelize = new Sequelize(
 );
 
 
-sequelize.sync({ alter: true }) // or { force: true } to drop & recreate
-  .then(() => {
-    console.log('✅ Database synced successfully');
-  })
-  .catch(err => {
-    console.error('❌ Sequelize sync failed:', err);
-  });
+// sequelize.sync({ alter: true }) // or { force: true } to drop & recreate
+//   .then(() => {
+//     console.log('✅ Database synced successfully');
+//   })
+//   .catch(err => {
+//     console.error('❌ Sequelize sync failed:', err);
+//   });
 
 
 

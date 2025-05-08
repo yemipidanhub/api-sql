@@ -104,7 +104,7 @@ const FormStageA = sequelize.define('FormStageA', {
     allowNull: true
   },
   userId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false
   },
   status: {
@@ -118,7 +118,9 @@ const FormStageA = sequelize.define('FormStageA', {
 
 FormStageA.associate = (models) => {
   FormStageA.belongsTo(models.Project, { foreignKey: 'projectId' });
+  FormStageA.hasOne(models.FormStageB, { foreignKey: 'formStageAId', as: 'stageB' });
 };
+
 
 return FormStageA;
 };

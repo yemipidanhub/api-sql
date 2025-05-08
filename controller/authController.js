@@ -20,7 +20,7 @@ const createSendToken = (user, statusCode, res) => {
     data: {
       user,
     },
-    redirectUrl: "/userdashboard", // This will be the page where you want the user to go after successful sign-up
+    redirectUrl: "/login", // This will be the page where you want the user to go after successful sign-up
   });
 };
 
