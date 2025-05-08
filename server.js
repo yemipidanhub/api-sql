@@ -13,6 +13,7 @@ const hpp = require('hpp');
 const { connectDB, sequelize } = require('./config/db');
 const formRoutes = require('./routes/projectRoutes');
 const errorHandler = require('./middlewares/errorMiddleware');
+const uploadRoute = require('./routes/uploadRoute')
 
 // Route files
 const authRoutes = require('./routes/authRoutes');
@@ -62,6 +63,7 @@ app.use('/uploads', express.static('uploads'));
 app.use('/api/forms', formRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/upload', uploadRoute);
 
 
 // Health check

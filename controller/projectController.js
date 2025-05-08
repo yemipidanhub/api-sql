@@ -1,23 +1,42 @@
-const { FormStageA } = require('../models/StageA.model');
-const {FormStageB} = require('../models/StageB.model');
-const { FormStageC } = require('../models/StageC.model');
+// const { FormStageA } = require('../models/stageA.model');
+// const {FormStageB} = require('../models/StageB.model');
+// const { FormStageC } = require('../models/StageC.model');
+
+const { FormStageA, FormStageB, FormStageC } = require('../models/Project');
+
 
 const { saveFile, deleteFile } = require('./fileController');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 
 // Create a new form (Stage A)
+const generateID  = require('../utils/generateProjectID');
+
 exports.createForm = async (req, res) => {
   try {
+    // Generate the project ID
+    const projectId = generateID();
+    
+    // Create the form with all data including projectId
     const form = await FormStageA.create({
-      ...req.body,
-      userId: req.user.id
+      ...req.body,          // Existing form data from request
+      projectId,            // Add the generated project ID
+      userId: req.user.id   // Already included from auth middleware
     });
     
-    res.status(201).json(form);
+    res.status(201).json({
+      success: true,
+      form,
+      projectId // Optionally return the ID explicitly
+    });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Failed to create form' });
+    console.error('Form creation error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to create form',
+      // Only show error details in development
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 

@@ -1,7 +1,7 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/db'); 
 
-module.exports = (sequelize, DataTypes) => {
+module.exports = () => {
 const FormStageB = sequelize.define('FormStageB', {
   id: {
     type: DataTypes.UUID,
