@@ -134,7 +134,8 @@ const FormStageC = sequelize.define('FormStageC', {
   }
 }, {
   timestamps: true,
-  paranoid: true
+  paranoid: true,
+  tableName: 'form_stage_c'
 });
 
 module.exports = FormStageC;

@@ -9,6 +9,11 @@ const FormStageA = sequelize.define('FormStageA', {
     allowNull: false,
     primaryKey: true
   },
+  projectId: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true
+  },
   projectType: {
     type: DataTypes.STRING,
     allowNull: false
@@ -103,6 +108,10 @@ const FormStageA = sequelize.define('FormStageA', {
     type: DataTypes.BOOLEAN,
     allowNull: true
   },
+  reasonUnsuccessful: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
   userId: {
     type: DataTypes.INTEGER,
     allowNull: false
@@ -113,7 +122,8 @@ const FormStageA = sequelize.define('FormStageA', {
   }
 }, {
   timestamps: true,
-  paranoid: true
+  paranoid: true,
+  tableName: 'form_stage_a'
 });
 
 FormStageA.associate = (models) => {
