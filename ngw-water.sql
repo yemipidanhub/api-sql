@@ -1,14 +1,15 @@
 -- First create the users table that all forms reference
--- CREATE TABLE users (
---     id CHAR(36) PRIMARY KEY,
---     username VARCHAR(50) NOT NULL UNIQUE,
---     email VARCHAR(255) NOT NULL UNIQUE,
---     password_hash VARCHAR(255) NOT NULL,
---     role ENUM('admin', 'field_agent', 'consultant', 'client') NOT NULL,
---     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
---     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
---     deleted_at TIMESTAMP NULL
--- ) ENGINE=InnoDB;
+CREATE TABLE users (
+    id CHAR(36) PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    role ENUM('admin', 'field_agent', 'consultant', 'client') NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP NULL
+) ENGINE=InnoDB;
+
 
 -- Then create form_stage_a with proper UUID handling
 CREATE TABLE form_stage_a (
