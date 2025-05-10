@@ -31,6 +31,7 @@ const sequelize = require('../config/db');
 const FormStageA = require('./stageA.model')(sequelize, Sequelize.DataTypes);
 const FormStageB = require('./stageB.model')(sequelize, Sequelize.DataTypes);
 const FormStageC = require('./stageC.model')(sequelize, Sequelize.DataTypes);
+// const Upload = require('./Upload.model')(sequelize, Sequelize.DataTypes);
 
 // Define relationships
 FormStageA.hasOne(FormStageB, { foreignKey: 'formStageAId' });
@@ -43,5 +44,6 @@ module.exports = {
   sequelize,
   FormStageA,
   FormStageB,
-  FormStageC
+  FormStageC,
+  // Upload
 };

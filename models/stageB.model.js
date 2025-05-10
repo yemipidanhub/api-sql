@@ -109,6 +109,11 @@ const FormStageB = sequelize.define('FormStageB', {
     type: DataTypes.UUID,
     allowNull: false
   },
+  reasonUnsuccessful: {
+    type: DataTypes.STRING,
+    defaultValue: "unknown"
+    
+  },
   status: {
     type: DataTypes.ENUM('draft', 'completed'),
     defaultValue: 'draft'

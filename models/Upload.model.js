@@ -1,6 +1,7 @@
 const { DataTypes } = require('sequelize');
+const { sequelize } = require("../config/db");
 
-module.exports = (sequelize) => {
+module.exports = () => {
   const Upload = sequelize.define('Upload', {
     stage: {
       type: DataTypes.ENUM('stageA', 'stageB', 'stageC'),
@@ -25,6 +26,14 @@ module.exports = (sequelize) => {
     uploadedAt: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW
+    },
+    projectId: {
+      type: DataTypes.STRING,
+      allowNull: false
+    },
+    uploadedBy: {
+      type: DataTypes.INTEGER,
+      allowNull: false
     }
   });
 

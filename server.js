@@ -2,7 +2,7 @@ require('dotenv').config({
   // path: `.env.production`,
   path: '.env.development'
 });
-
+const cookieParser = require('cookie-parser');
 const express = require('express');
 const morgan = require('morgan');
 const cors = require('cors');
@@ -50,6 +50,9 @@ const corsOptions = {
   credentials: true
 };
 app.use(cors(corsOptions));
+
+
+app.use(cookieParser());
 
 
 // Body parser
