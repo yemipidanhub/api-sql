@@ -113,6 +113,9 @@ const FormStageB = sequelize.define('FormStageB', {
     type: DataTypes.STRING,
     defaultValue: "unknown"
     
+  },projectId: {
+    type: DataTypes.STRING,
+    allowNull: false
   },
   status: {
     type: DataTypes.ENUM('draft', 'completed'),
@@ -126,6 +129,8 @@ const FormStageB = sequelize.define('FormStageB', {
 
 FormStageB.associate = (models) => {
   FormStageB.belongsTo(models.Project, { foreignKey: 'projectId' });
+  FormStageB.belongsTo(models.FormStageA, { foreignKey: 'formStageAId' });
+
 };
 
 return FormStageB;
