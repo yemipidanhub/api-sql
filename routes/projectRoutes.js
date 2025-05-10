@@ -36,103 +36,101 @@
 
 // module.exports = router;
 
-
-const express = require('express');
+const express = require("express");
 const router = express.Router();
 
 // Import controllers
-const FormStageAController = require('../controller/formStageA');
-const FormStageBController = require('../controller/formStageB');
-const FormStageCController = require('../controller/formStageC');
-const MediaController = require('../controller/mediaController');
+const FormStageAController = require("../controller/formStageA");
+const FormStageBController = require("../controller/formStageB");
+const FormStageCController = require("../controller/formStageC");
+const MediaController = require("../controller/mediaController");
 
 // Create controller instances
-// const formStageAController = new FormStageAController();
-// const formStageBController = new FormStageBController();
-// const formStageCController = new FormStageCController();
-// const mediaController = new MediaController();
+// // const formStageAController = new FormStageAController();
+// // const formStageBController = new FormStageBController();
+// // const formStageCController = new FormStageCController();
+// // const mediaController = new MediaController();
 
 // Import middlewares
 const { upload, stageCUpload } = require('../middlewares/upload');
-const { authenticate, protect, restrictTo } = require('../middlewares/authMiddleware');
+const authMiddleware = require('../middlewares/authMiddleware');
 
-// Verify critical imports
-if (typeof authenticate !== 'function') {
-  throw new Error('authenticate middleware is not properly imported');
+// Verify critical imports are functions
+if (typeof authMiddleware !== 'function') {
+  throw new Error('authMiddleware is not a function');
 }
-if (typeof upload !== 'function' || typeof stageCUpload !== 'function') {
-  throw new Error('Upload middleware is not properly imported');
+if (typeof upload !== 'function') {
+  throw new Error('upload middleware is not a function');
+}
+if (typeof stageCUpload !== 'function') {
+  throw new Error('stageCUpload middleware is not a function');
 }
 
 // ======================
 // Stage A Routes
-// ======================
 router.post('/stage-a',
-  authenticate,
+  authMiddleware,
   upload,
-  (req, res) => FormStageAController.create(req, res)
+  formStageAController.create.bind(formStageAController)
 );
 
 router.get('/stage-a/:projectId',
-  authenticate,
-  (req, res) => FormStageAController.getByProjectId(req, res)
+  authMiddleware,
+  formStageAController.getByProjectId.bind(formStageAController)
 );
 
 router.put('/stage-a/:id',
-  authenticate,
+  authMiddleware,
   upload,
-  (req, res) => FormStageAController.update(req, res)
+  formStageAController.update.bind(formStageAController)
 );
 
 // ======================
 // Stage B Routes
-// ======================
 router.post('/stage-b/:formStageAId',
-  authenticate,
-  (req, res) => FormStageBController.create(req, res)
+  authMiddleware,
+  formStageBController.create.bind(formStageBController)
 );
 
 router.get('/stage-b/:formStageAId',
-  authenticate,
-  (req, res) => FormStageBController.getByStageAId(req, res)
+  authMiddleware,
+  formStageBController.getByStageAId.bind(formStageBController)
 );
 
 router.put('/stage-b/:id',
-  authenticate,
-  (req, res) => FormStageBController.update(req, res)
+  authMiddleware,
+  formStageBController.update.bind(formStageBController)
 );
 
 // ======================
 // Stage C Routes
-// ======================
 router.post('/stage-c/:formStageBId',
-  authenticate,
+  authMiddleware,
   stageCUpload,
-  (req, res) => FormStageCController.create(req, res)
+  formStageCController.create.bind(formStageCController)
 );
 
 router.get('/stage-c/:formStageBId',
-  authenticate,
-  (req, res) => FormStageCController.getByStageBId(req, res)
+  authMiddleware,
+  formStageCController.getByStageBId.bind(formStageCController)
 );
 
 router.put('/stage-c/:id',
-  authenticate,
+  authMiddleware,
   stageCUpload,
-  (req, res) => FormStageCController.update(req, res)
+  formStageCController.update.bind(formStageCController)
 );
 
 // ======================
 // Media Routes
-// ======================
 router.delete('/media/:id',
-  authenticate,
-  (req, res) => MediaController.delete(req, res)
+  authMiddleware,
+  mediaController.delete.bind(mediaController)
 );
 
 router.get('/media/form-stage-a/:formStageAId',
-  authenticate,
-  (req, res) => MediaController.getByFormStageAId(req, res)
+  authMiddleware,
+  mediaController.getByFormStageAId.bind(mediaController)
 );
 
 module.exports = router;

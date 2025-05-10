@@ -4,12 +4,16 @@ const { uploadToCloudinary } = require('../config/cloudinary');
 
 class FormStageAController {
   static async create(req, res) {
+    console.log('Received body:', req.body);
+    console.log('User ID:', req.user.id)
+    console.log('Received files:', req.files);
     try {
-      const { body, userId } = req;
+      const { body } = req;
+      const userId = req?.user?.id;
       const result = await FormStageA.create(body, userId);
       
       // Handle file uploads if any
-      if (req.files && req.files.length > 0) {
+      if (req.files && req.files.length > 0 && Array.isArray(req.files)) {
         const uploadPromises = req.files.map(file => 
           uploadToCloudinary(file).then(url => 
             Media.create(result.id, url, file.mimetype, userId)

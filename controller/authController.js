@@ -123,6 +123,14 @@ exports.login = catchAsync(async (req, res, next) => {
     return next(new AppError("Incorrect email or password", 401));
   }
 
+  res.cookie('userId', user.id, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'Strict',
+    maxAge: 24 * 60 * 60 * 1000
+  });
+  
+
   createSendToken(user, 200, res);
 });
 

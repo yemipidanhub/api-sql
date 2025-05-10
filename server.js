@@ -122,7 +122,7 @@ require('dotenv').config({
   // path: `.env.production`,
   path: '.env.development'
 });
-
+const cookieParser = require('cookie-parser');
 const express = require('express');
 const morgan = require('morgan');
 const cors = require('cors');
@@ -131,6 +131,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const hpp = require('hpp');
 const { connectDB, sequelize } = require('./config/db');
+const mysqlConnection = require("./config/mysql2")
 const errorHandler = require('./middlewares/errorMiddleware');
 
 // Route files
@@ -208,6 +209,18 @@ app.get('/', (req, res) => {
 app.get('/xampp-test', async (req, res, next) => {
   try {
     const [results] = await sequelize.query("SELECT 1+1 AS result");
+    res.json({
+      status: 'success',
+      database: 'connected',
+      result: results[0].result
+    });
+  } catch (error) {
+    next(error); // Let the error middleware handle it
+  }
+});
+app.get('/mysql2-test', async (req, res, next) => {
+  try {
+    const [results] = await mysqlConnection.query("SELECT 1+1 AS result");
     res.json({
       status: 'success',
       database: 'connected',

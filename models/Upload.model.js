@@ -1,3 +1,4 @@
+
 // const { DataTypes } = require('sequelize');
 
 // module.exports = (sequelize) => {
@@ -27,7 +28,6 @@
 //       defaultValue: DataTypes.NOW
 //     }
 //   });
-
 //   Upload.associate = (models) => {
 //     Upload.belongsTo(models.Project, {
 //       foreignKey: 'projectId',

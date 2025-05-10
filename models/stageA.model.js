@@ -143,13 +143,41 @@
 //   return FormStageA
 // };
 
-
-
-const db = require('../config/db');
+const generateID = require("../utils/generateProjectID");
+const db = require("../config/mysql2");
 
 class FormStageA {
   static async create(data, userId) {
-    const projectId = `PROJ-${Date.now()}`;
+    // const projectId = `NGW-${Date.now()}`;
+    if (!userId) {
+      userId = "unknown";
+    }
+    const projectId = generateID();
+    const {
+      projectType,
+      agencyName,
+      clientName,
+      clientPhone,
+      clientEmail,
+      state,
+      lga,
+      town,
+      streetAddress,
+      latitude,
+      longitude,
+      consultantName,
+      consultantPhone,
+      consultantEmail,
+      consultantLicenseNumber,
+      consultantAddress,
+      estimatedOverburden,
+      estimatedDepth,
+      estimatedFractureDepth,
+      estimatedWeatheredZone,
+      curveType,
+      accessibility,
+    } = data;
+    // console.log(data);
     const [result] = await db.execute(
       `INSERT INTO form_stage_a (
         projectId, projectType, agencyName, clientName, clientPhone, clientEmail,
@@ -159,23 +187,48 @@ class FormStageA {
         estimatedWeatheredZone, curveType, accessibility, userId
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        projectId, data.projectType, data.agencyName, data.clientName, data.clientPhone, data.clientEmail,
-        data.state, data.lga, data.town, data.streetAddress, data.latitude, data.longitude, data.consultantName,
-        data.consultantPhone, data.consultantEmail, data.consultantLicense, data.consultantAddress,
-        data.estimatedOverburden, data.estimatedDepth, data.estimatedFractureDepth,
-        data.estimatedWeatheredZone, data.curveType, data.accessibility, userId
+        projectId,
+        projectType,
+        agencyName,
+        clientName,
+        clientPhone,
+        clientEmail,
+        state,
+        lga,
+        town,
+        streetAddress,
+        latitude,
+        longitude,
+        consultantName,
+        consultantPhone,
+        consultantEmail,
+        consultantLicenseNumber,
+        consultantAddress,
+        estimatedOverburden,
+        estimatedDepth,
+        estimatedFractureDepth,
+        estimatedWeatheredZone,
+        curveType,
+        accessibility,
+        userId,
       ]
     );
     return { ...data, id: result.insertId, projectId };
   }
+  
 
   static async findById(id) {
-    const [rows] = await db.execute('SELECT * FROM form_stage_a WHERE id = ?', [id]);
+    const [rows] = await db.execute("SELECT * FROM form_stage_a WHERE id = ?", [
+      id,
+    ]);
     return rows[0];
   }
 
   static async findByProjectId(projectId) {
-    const [rows] = await db.execute('SELECT * FROM form_stage_a WHERE projectId = ?', [projectId]);
+    const [rows] = await db.execute(
+      "SELECT * FROM form_stage_a WHERE projectId = ?",
+      [projectId]
+    );
     return rows[0];
   }
 
@@ -190,12 +243,30 @@ class FormStageA {
         accessibility = ?, status = ?
       WHERE id = ?`,
       [
-        data.projectType, data.agencyName, data.clientName, data.clientPhone, data.clientEmail,
-        data.state, data.lga, data.town, data.streetAddress, data.latitude, data.longitude,
-        data.consultantName, data.consultantPhone, data.consultantEmail, data.consultantLicense,
-        data.consultantAddress, data.estimatedOverburden, data.estimatedDepth,
-        data.estimatedFractureDepth, data.estimatedWeatheredZone, data.curveType,
-        data.accessibility, data.status, id
+        data.projectType,
+        data.agencyName,
+        data.clientName,
+        data.clientPhone,
+        data.clientEmail,
+        data.state,
+        data.lga,
+        data.town,
+        data.streetAddress,
+        data.latitude,
+        data.longitude,
+        data.consultantName,
+        data.consultantPhone,
+        data.consultantEmail,
+        data.consultantLicense,
+        data.consultantAddress,
+        data.estimatedOverburden,
+        data.estimatedDepth,
+        data.estimatedFractureDepth,
+        data.estimatedWeatheredZone,
+        data.curveType,
+        data.accessibility,
+        data.status,
+        id,
       ]
     );
     return this.findById(id);

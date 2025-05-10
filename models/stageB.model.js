@@ -1,6 +1,7 @@
 // const { DataTypes } = require('sequelize');
 // const { sequelize } = require('../config/db'); 
 
+
 // module.exports = () => {
 // const FormStageB = sequelize.define('FormStageB', {
 //   id: {

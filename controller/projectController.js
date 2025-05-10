@@ -62,34 +62,40 @@ exports.updateStageA = async (req, res) => {
 // Create/Update Stage B
 exports.updateStageB = async (req, res) => {
   try {
+    // Step 1: Find Stage A and verify user
     const stageA = await FormStageA.findOne({
       where: { id: req.params.id, userId: req.user.id }
     });
-    
+
     if (!stageA) {
       return res.status(404).json({ error: 'Stage A not found' });
     }
-    
+
+    // Step 2: Look for existing Stage B
     let stageB = await FormStageB.findOne({
       where: { formStageAId: req.params.id }
     });
-    
+
     if (stageB) {
-      stageB = await stageB.update(req.body);
+      // Optional: you might want to prevent projectId from being updated manually
+      stageB = await stageB.update({ ...req.body });
     } else {
+      // Step 3: Create Stage B with inherited projectId and other fields
       stageB = await FormStageB.create({
         ...req.body,
         formStageAId: req.params.id,
-        userId: req.user.id
+        userId: req.user.id,
+        projectId: stageA.projectId // inherited from Stage A
       });
     }
-    
+
     res.json(stageB);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to update Stage B' });
   }
 };
+
 
 // Create/Update Stage C with file uploads
 exports.updateStageC = async (req, res) => {

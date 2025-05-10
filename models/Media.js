@@ -1,16 +1,21 @@
 const db = require('../config/db');
 
 class Media {
-  static async create(formStageAId, fileUrl, fileType, userId) {
+  static async create({ formStageAId = null, formStageBId = null, fileUrl, fileType, userId }) {
     const [result] = await db.execute(
-      'INSERT INTO media (formStageAId, fileUrl, fileType, userId) VALUES (?, ?, ?, ?)',
-      [formStageAId, fileUrl, fileType, userId]
+      'INSERT INTO media (formStageAId, formStageBId, fileUrl, fileType, userId) VALUES (?, ?, ?, ?, ?)',
+      [formStageAId, formStageBId, fileUrl, fileType, userId]
     );
-    return { id: result.insertId, formStageAId, fileUrl, fileType };
+    return { id: result.insertId, formStageAId, formStageBId, fileUrl, fileType };
   }
 
   static async findByFormStageAId(formStageAId) {
     const [rows] = await db.execute('SELECT * FROM media WHERE formStageAId = ?', [formStageAId]);
+    return rows;
+  }
+
+  static async findByFormStageBId(formStageBId) {
+    const [rows] = await db.execute('SELECT * FROM media WHERE formStageBId = ?', [formStageBId]);
     return rows;
   }
 
@@ -20,5 +25,6 @@ class Media {
     return media[0];
   }
 }
+
 
 module.exports = Media;
