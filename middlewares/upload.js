@@ -1,113 +1,112 @@
-// const multer = require('multer');
-// const path = require('path');
-// const { v4: uuidv4 } = require('uuid');
-
-// const storage = multer.diskStorage({
-//   destination: (req, file, cb) => {
-//     cb(null, 'uploads/tmp/');
-//   },
-//   filename: (req, file, cb) => {
-//     const ext = path.extname(file.originalname);
-//     cb(null, `${uuidv4()}${ext}`);
-//   }
-// });
-
-// const fileFilter = (req, file, cb) => {
-//   const allowedTypes = [
-//     'image/jpeg', 
-//     'image/png', 
-//     'application/pdf',
-//     'image/jpg'
-//   ];
-  
-//   if (allowedTypes.includes(file.mimetype)) {
-//     cb(null, true);
-//   } else {
-//     cb(new Error('Invalid file type. Only JPEG, PNG, and PDF are allowed.'));
-//   }
-// };
-
-// const upload = multer({
-//   storage,
-//   fileFilter,
-//   limits: {
-//     fileSize: 5 * 1024 * 1024 // 5MB
-//   }
-// });
-
-// // Middleware to handle file upload errors
-// exports.handleUploadErrors = (err, req, res, next) => {
-//   if (err instanceof multer.MulterError) {
-//     return res.status(400).json({
-//       error: {
-//         message: err.message,
-//         details: err.code === 'LIMIT_FILE_SIZE' 
-//           ? 'File size exceeds 5MB limit' 
-//           : 'File upload error'
-//       }
-//     });
-//   } else if (err) {
-//     return res.status(400).json({
-//       error: {
-//         message: err.message
-//       }
-//     });
-//   }
-//   next();
-// };
-
-// exports.upload = upload;
-
-
 const multer = require('multer');
 const path = require('path');
+const { v4: uuidv4 } = require('uuid');
+const fs = require('fs');
 
-// Configure storage for general file uploads
-const storage = multer.diskStorage({
+// Create uploads directory if it doesn't exist
+const uploadDir = 'uploads/tmp';
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Supported file types
+const allowedTypes = {
+  image: ['image/jpeg', 'image/png', 'image/jpg', 'image/gif'],
+  document: ['application/pdf', 'application/msword', 
+             'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+  video: ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/x-flv', 'video/webm']
+};
+
+// Combined allowed types
+const allAllowedTypes = [
+  ...allowedTypes.image,
+  ...allowedTypes.document,
+  ...allowedTypes.video
+];
+
+// MEMORY STORAGE (Recommended for Cloudinary)
+const memoryStorage = multer.memoryStorage();
+
+// DISK STORAGE (Alternative)
+const diskStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
   filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
+    const ext = path.extname(file.originalname);
+    cb(null, `${uuidv4()}${ext}`);
   }
 });
 
-// For Stage C specific file uploads
-const stageCUpload = multer({
-  storage: storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
-  fileFilter: (req, file, cb) => {
-    const filetypes = /jpeg|jpg|png|pdf|doc|docx/;
-    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = filetypes.test(file.mimetype);
-    
-    if (mimetype && extname) {
-      return cb(null, true);
-    } else {
-      cb(new Error('Only images, PDFs, and Word documents are allowed'));
-    }
+// File type validation
+const fileValidator = (file) => {
+  const valid = allAllowedTypes.includes(file.mimetype);
+  if (!valid) {
+    throw new Error(`Invalid file type. Allowed types: ${Object.keys(allowedTypes).join(', ')}`);
   }
+  return valid;
+};
+
+// General upload (memory storage recommended)
+const upload = multer({
+  storage: memoryStorage,
+  fileFilter: (req, file, cb) => {
+    try {
+      fileValidator(file);
+      cb(null, true);
+    } catch (err) {
+      cb(err);
+    }
+  },
+  limits: { fileSize: 5 * 1024 * 1024 }
+}).array('files', 5);
+
+// Stage C upload
+const stageCUpload = multer({
+  storage: memoryStorage,
+  fileFilter: (req, file, cb) => {
+    try {
+      if (['labTestCertificate', 'rawLabSheet'].includes(file.fieldname)) {
+        if (!allowedTypes.document.includes(file.mimetype)) {
+          throw new Error(`${file.fieldname} must be a document (PDF or Word)`);
+        }
+      } else if (file.fieldname === 'samplingPointPhotos') {
+        if (![...allowedTypes.image, ...allowedTypes.video].includes(file.mimetype)) {
+          throw new Error('Sampling photos must be images (JPEG, PNG) or videos (MP4)');
+        }
+      }
+      cb(null, true);
+    } catch (err) {
+      cb(err);
+    }
+  },
+  limits: { fileSize: 50 * 1024 * 1024 }
 }).fields([
   { name: 'labTestCertificate', maxCount: 1 },
   { name: 'rawLabSheet', maxCount: 1 },
   { name: 'samplingPointPhotos', maxCount: 5 }
 ]);
 
-// For general file uploads (Stage A)
-const upload = multer({
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-  fileFilter: (req, file, cb) => {
-    const filetypes = /jpeg|jpg|png|pdf/;
-    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = filetypes.test(file.mimetype);
-    
-    if (mimetype && extname) {
-      return cb(null, true);
-    } else {
-      cb(new Error('Only images and PDFs are allowed'));
-    }
+// Error handling middleware
+const handleUploadErrors = (err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    return res.status(400).json({ 
+      status: 'error',
+      message: err.code === 'LIMIT_FILE_SIZE' 
+        ? 'File too large' 
+        : err.message 
+    });
+  } else if (err) {
+    return res.status(400).json({
+      status: 'error',
+      message: err.message
+    });
   }
-}).array('files', 5); // Max 5 files
+  next();
+};
 
 module.exports = {
   upload,
-  stageCUpload
+  stageCUpload,
+  handleUploadErrors
 };

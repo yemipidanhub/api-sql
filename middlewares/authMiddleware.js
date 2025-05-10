@@ -3,68 +3,57 @@ const { promisify } = require('util');
 const User = require('../models/User.model');
 const AppError = require('../utils/appError');
 
-
-exports.authenticate = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return next(new AppError('Authentication required', 401));
-  }
-  
-  const token = authHeader.split(' ')[1];
-  
+exports.authenticate = async (req, res, next) => {
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = payload;  // Attach user data to the request object
-    next();
-  } catch (err) {
-    return next(new AppError('Invalid or expired token', 401));  // Ensure next is used for error handling
-  }
-};
-
-exports.protect = async (req, res, next) => {
-  try {
-    let token;
-    if (
-      req.headers.authorization &&
-      req.headers.authorization.startsWith('Bearer')
-    ) {
-      token = req.headers.authorization.split(' ')[1];
+    // 1. Get token from header
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      return next(new AppError('Authorization header missing or invalid', 401));
     }
+    const token = authHeader.split(' ')[1];
 
-    if (!token) {
-      return next(
-        new AppError('You are not logged in! Please log in to get access.', 401)
-      );
-    }
-
+    // 2. Verify token
     const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
+    
+    // 3. Validate payload contains ID
+    if (!decoded.id) {
+      throw new Error('Token payload missing user ID');
+    }
 
-    const currentUser = await User.findByPk(decoded.id);
+    // 4. Get user (only essential fields)
+    const currentUser = await User.findByPk(decoded.id, {
+      attributes: ['id', 'passwordChangedAt']
+    });
+
+    
     if (!currentUser) {
-      return next(
-        new AppError('The user belonging to this token does no longer exist.', 401)
-      );
+      return next(new AppError('User no longer exists', 401));
     }
 
-    if (currentUser.changedPasswordAfter(decoded.iat)) {
-      return next(
-        new AppError('User recently changed password! Please log in again.', 401)
-      );
-    }
-
-    req.user = currentUser;
+    // 5. Attach user to request
+    req.user = { id: currentUser.id };
     next();
+
   } catch (err) {
-    next(err);
+    console.error('JWT Error:', err.name, err.message);
+    
+    if (err.name === 'TokenExpiredError') {
+      return next(new AppError('Token expired', 401));
+    }
+    if (err.name === 'JsonWebTokenError') {
+      return next(new AppError('Invalid token', 401));
+    }
+    
+    return next(new AppError('Authentication failed', 401));
   }
 };
 
-exports.restrictTo = (...roles) => {
+exports.restrictTo = (...allowedRoles) => {
   return (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
+    // Verify user exists and has required role
+    if (!req.user?.role || !allowedRoles.includes(req.user.role)) {
       return next(
-        new AppError('You do not have permission to perform this action', 403)
+        new AppError('You do not have permission for this action', 403)
       );
     }
     next();
