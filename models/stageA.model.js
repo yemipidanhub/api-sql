@@ -177,7 +177,7 @@ class FormStageA {
       curveType,
       accessibility,
     } = data;
-    // console.log(data);
+    console.log(data);
     const [result] = await db.execute(
       `INSERT INTO form_stage_a (
         projectId, projectType, agencyName, clientName, clientPhone, clientEmail,
@@ -213,7 +213,7 @@ class FormStageA {
         userId,
       ]
     );
-    return { ...data, id: result.insertId, projectId };
+    return { data, id: result.insertId, projectId };
   }
   
 

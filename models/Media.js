@@ -1,12 +1,13 @@
 const db = require('../config/db');
 
 class Media {
-  static async create({ formStageAId = null, formStageBId = null, fileUrl, fileType, userId }) {
+  static async create({ formStageAId = null, fileUrl, fileType, userId }) {
     const [result] = await db.execute(
-      'INSERT INTO media (formStageAId, formStageBId, fileUrl, fileType, userId) VALUES (?, ?, ?, ?, ?)',
-      [formStageAId, formStageBId, fileUrl, fileType, userId]
+      'INSERT INTO media (formStageAId, fileUrl, fileType, userId) VALUES (?, ?, ?, ?, ?)',
+      [formStageAId, fileUrl, fileType, userId]
     );
-    return { id: result.insertId, formStageAId, formStageBId, fileUrl, fileType };
+    console.log(userId)
+    return { id: result.insertId, formStageAId, fileUrl, fileType };
   }
 
   static async findByFormStageAId(formStageAId) {
@@ -14,10 +15,10 @@ class Media {
     return rows;
   }
 
-  static async findByFormStageBId(formStageBId) {
-    const [rows] = await db.execute('SELECT * FROM media WHERE formStageBId = ?', [formStageBId]);
-    return rows;
-  }
+  // static async findByFormStageBId(formStageBId) {
+  //   const [rows] = await db.execute('SELECT * FROM media WHERE formStageBId = ?', [formStageBId]);
+  //   return rows;
+  // }
 
   static async delete(id) {
     const [media] = await db.execute('SELECT * FROM media WHERE id = ?', [id]);
