@@ -4,95 +4,94 @@ const db = require("../config/mysql2");
 class FormStageA {
   static async create(data, userId) {
     // Validate required parameters
-    if (!data || typeof data !== 'object') {
-        throw new Error('Invalid data provided');
+    if (!data || typeof data !== "object") {
+      throw new Error("Invalid data provided");
     }
-
 
     // Generate project ID (moved before destructuring)
     const projectId = generateID();
-    
+    console.log("user id", userId);
+
     // Set default userId if not provided (but better to enforce authentication)
-    userId = userId || 'unknown'; // Consider throwing error instead for production
+    userId = userId || "unknown"; // Consider throwing error instead for production
 
     // Destructure with default values to prevent undefined errors
     const {
-        projectType = '',
-        agencyName = '',
-        clientName = '',
-        clientPhone = '',
-        clientEmail = '',
-        state = '',
-        lga = '',
-        town = '',
-        streetAddress = '',
-        latitude = '',
-        longitude = '',
-        consultantName = '',
-        consultantPhone = '',
-        consultantEmail = '',
-        consultantLicenseNumber = '',
-        consultantAddress = '',
-        estimatedOverburden = '',
-        estimatedDepth = '',
-        estimatedFractureDepth = '',
-        estimatedWeatheredZone = '',
-        curveType = '',
-        accessibility = '',
+      projectType = "",
+      agencyName = "",
+      clientName = "",
+      clientPhone = "",
+      clientEmail = "",
+      state = "",
+      lga = "",
+      town = "",
+      streetAddress = "",
+      latitude = "",
+      longitude = "",
+      consultantName = "",
+      consultantPhone = "",
+      consultantEmail = "",
+      consultantLicenseNumber = "",
+      consultantAddress = "",
+      estimatedOverburden = "",
+      estimatedDepth = "",
+      estimatedFractureDepth = "",
+      estimatedWeatheredZone = "",
+      curveType = "",
+      accessibility = "",
     } = data;
 
     try {
-        const [result] = await db.execute(
-            `INSERT INTO form_stage_a (
+      const [result] = await db.execute(
+        `INSERT INTO form_stage_a (
                 projectId, projectType, agencyName, clientName, clientPhone, clientEmail,
                 state, lga, town, streetAddress, latitude, longitude, consultantName,
                 consultantPhone, consultantEmail, consultantLicense, consultantAddress,
                 estimatedOverburden, estimatedDepth, estimatedFractureDepth,
                 estimatedWeatheredZone, curveType, accessibility, userId
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-                projectId,
-                projectType,
-                agencyName,
-                clientName,
-                clientPhone,
-                clientEmail,
-                state,
-                lga,
-                town,
-                streetAddress,
-                latitude,
-                longitude,
-                consultantName,
-                consultantPhone,
-                consultantEmail,
-                consultantLicenseNumber,
-                consultantAddress,
-                estimatedOverburden,
-                estimatedDepth,
-                estimatedFractureDepth,
-                estimatedWeatheredZone,
-                curveType,
-                accessibility,
-                userId
-            ]
-        );
+        [
+          projectId,
+          projectType,
+          agencyName,
+          clientName,
+          clientPhone,
+          clientEmail,
+          state,
+          lga,
+          town,
+          streetAddress,
+          latitude,
+          longitude,
+          consultantName,
+          consultantPhone,
+          consultantEmail,
+          consultantLicenseNumber,
+          consultantAddress,
+          estimatedOverburden,
+          estimatedDepth,
+          estimatedFractureDepth,
+          estimatedWeatheredZone,
+          curveType,
+          accessibility,
+          userId,
+        ]
+      );
 
-        // Return only necessary fields (don't spread entire data object)
-        return { 
-            id: result.insertId, 
-            projectId,
-            userId,
-            status: 'created',
-            timestamp: new Date().toISOString()
-        };
-
+      // Return only necessary fields (don't spread entire data object)
+      return {
+        id: result.insertId,
+        projectId,
+        userId,
+        status: "created",
+        timestamp: new Date().toISOString(),
+      };
     } catch (error) {
-        console.error('Database insertion failed:', error);
-        throw new Error('Failed to create project record');
+      console.error("Database insertion failed:", error);
+      throw new Error("Failed to create project record");
     }
-}
-  
+  }
+
   static async findById(id) {
     const [rows] = await db.execute("SELECT * FROM form_stage_a WHERE id = ?", [
       id,

@@ -2,6 +2,7 @@ const FormStageA = require("../models/StageA.model");
 const Media = require("../models/Media");
 const { uploadToCloudinary } = require("../config/cloudinary");
 const { log } = require("winston");
+const db = require("../config/mysql2")
 
 class FormStageAController {
   static async create(req, res) {
@@ -20,12 +21,14 @@ class FormStageAController {
     console.log('Received files:', req.files);
 
     let transaction;
+    const conn = await db.getConnection();
     try {
       // Start database transaction for atomic operations
-      transaction = await db.beginTransaction();
+      transaction = await conn.beginTransaction();
 
       // 1. Create the form record with transaction
-      const formResult = await FormStageA.create(req.body, transaction);
+      const formResult = await FormStageA.create(req.body, userId);
+      console.log(formResult)
 
       // 2. Process files if they exist
       const files = req.files 
@@ -67,7 +70,7 @@ class FormStageAController {
             uploadResult.secure_url,
             file.mimetype || 'application/octet-stream',
             userId,
-            transaction
+            // transaction
           );
           mediaRecords.push(media);
         } catch (fileError) {

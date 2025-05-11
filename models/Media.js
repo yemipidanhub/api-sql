@@ -1,4 +1,4 @@
-const db = require('../config/db');
+const db = require('../config/mysql2');
 
 class Media {
   static async create({ formStageAId = null, fileUrl, fileType, userId }) {
