@@ -185,7 +185,8 @@ app.use('/api/projects', projectRoutes); // Changed from /api/forms to /api/proj
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
 // app.use('/api/v1/upload', uploadRoute); // Remove if using Cloudinary instead
-
+// Turn off ETag generation
+// app.disable('etag');
 // Health check
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK' });

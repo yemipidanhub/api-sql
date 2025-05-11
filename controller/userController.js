@@ -30,6 +30,7 @@ exports.getUser = catchAsync(async (req, res, next) => {
 });
 
 exports.getMe = (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
   console.log("called")
   res.status(200).json({
     status: 'success',

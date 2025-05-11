@@ -5,60 +5,66 @@ cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME, 
   api_key: process.env.CLOUDINARY_API_KEY, 
   api_secret: process.env.CLOUDINARY_API_SECRET,
-  secure: true // Always use HTTPS
+  secure: true 
 });
 
 /**
- * Uploads a file to Cloudinary
- * @param {Object} file - Multer file object with buffer or path
- * @param {Object} options - Additional Cloudinary options
- * @returns {Promise<Object>} Cloudinary upload result
+ * Uploads a file to Cloudinary with timeout protection
+ * @param {Object} file - Multer file object
+ * @param {Object} options - Cloudinary upload options
+ * @param {number} timeoutMs - Upload timeout in milliseconds
+ * @returns {Promise<Object>}
  */
-const uploadToCloudinary = (file, options = {}) => {
-  return new Promise((resolve, reject) => {
-    // Default options
-    const uploadOptions = {
-      folder: 'project_documents',
-      resource_type: 'auto', // Auto-detect image/video/raw
-      ...options
-    };
+const uploadToCloudinary = (file, options = {}, timeoutMs = 30000) => {
+  const uploadOptions = {
+    folder: 'project_documents',
+    resource_type: 'auto',
+    ...options
+  };
 
-    // Create upload stream
-    const uploadStream = cloudinary.uploader.upload_stream(
-      uploadOptions,
-      (error, result) => {
-        if (error) {
-          console.error('Cloudinary upload error:', error);
-          reject(new Error('Failed to upload file to Cloudinary'));
-        } else {
-          resolve(result);
-        }
+  return Promise.race([
+    new Promise((resolve, reject) => {
+      if (file.buffer) {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          uploadOptions,
+          (error, result) => {
+            if (error) {
+              console.error('Cloudinary upload error:', error);
+              reject(new Error('Failed to upload file to Cloudinary'));
+            } else {
+              resolve(result);
+            }
+          }
+        );
+        uploadStream.end(file.buffer);
+
+      } else if (file.path) {
+        cloudinary.uploader.upload(file.path, uploadOptions)
+          .then(resolve)
+          .catch(err => {
+            console.error('Cloudinary upload error:', err);
+            reject(new Error('Failed to upload file to Cloudinary'));
+          });
+
+      } else {
+        reject(new Error('Invalid file format - no buffer or path found'));
       }
-    );
+    }),
 
-    // Handle both buffer and temp file uploads
-    if (file.buffer) {
-      // Memory storage - stream the buffer
-      uploadStream.end(file.buffer);
-    } else if (file.path) {
-      // Disk storage - upload from temp path
-      cloudinary.uploader.upload(file.path, uploadOptions)
-        .then(resolve)
-        .catch(reject);
-    } else {
-      reject(new Error('Invalid file format - no buffer or path found'));
-    }
-  });
+    // Timeout rejection after specified milliseconds
+    new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Cloudinary upload timed out')), timeoutMs)
+    )
+  ]);
 };
 
 /**
  * Deletes a file from Cloudinary
  * @param {string} publicId - Cloudinary public ID or URL
- * @returns {Promise<Object>} Cloudinary deletion result
+ * @returns {Promise<Object>}
  */
 const deleteFromCloudinary = async (publicId) => {
   try {
-    // Extract public ID if URL was provided
     if (publicId.includes('cloudinary.com')) {
       publicId = publicId.split('/').pop().split('.')[0];
     }
