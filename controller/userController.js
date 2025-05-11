@@ -29,9 +29,12 @@ exports.getUser = catchAsync(async (req, res, next) => {
   });
 });
 
-exports.getMe = (req, res, next) => {
-  req.params.id = req.user.id;
-  next();
+exports.getMe = (req, res) => {
+  console.log("called")
+  res.status(200).json({
+    status: 'success',
+    data: req.user
+  });
 };
 
 exports.updateMe = catchAsync(async (req, res, next) => {
