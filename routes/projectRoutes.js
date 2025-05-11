@@ -10,11 +10,12 @@ const MediaController = require("../controller/mediaController");
 // Import middlewares
 const { upload, stageCUpload } = require('../middlewares/upload');
 const { authenticate, restrictTo } = require('../middlewares/authMiddleware');
+const authController = require("../controller/authController");
 
 // ======================
 // Stage A Routes
 router.post('/stage-a',
-  authenticate,
+  authController.protect,
   // restrictTo('admin', 'project-manager', 'field-engineer'), // Only these roles can create
   upload,
   FormStageAController.create.bind(FormStageAController)
