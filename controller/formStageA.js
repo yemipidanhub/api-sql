@@ -1,12 +1,10 @@
 const FormStageA = require("../models/stageA.model");
 const Media = require("../models/Media");
 const { uploadToCloudinary } = require("../config/cloudinary");
-const { log } = require("winston");
 const db = require("../config/mysql2");
 
 class FormStageAController {
   static async create(req, res) {
-    // Validate authentication first
     if (!req.user?.id) {
       return res.status(401).json({
         success: false,
@@ -19,19 +17,14 @@ class FormStageAController {
     console.log("Received body:", req.body);
     console.log("Received files:", req.files);
 
-    let transaction;
     let conn;
 
     try {
-      const conn = await db.getConnection();
-      // Start database transaction for atomic operations
+      conn = await db.getConnection();
       await conn.beginTransaction();
 
-      // 1. Create the form record with transaction
       const formResult = await FormStageA.create(req.body, userId);
-      // console.log(formResult);
 
-      // 2. Process files if they exist
       const files = req.files
         ? Array.isArray(req.files)
           ? req.files
@@ -42,13 +35,11 @@ class FormStageAController {
 
       for (const file of files) {
         try {
-          // Validate file structure
           if (!file?.buffer && !file?.path) {
             console.warn("Invalid file structure:", file);
             continue;
           }
 
-          // Upload to Cloudinary
           const uploadResult = await uploadToCloudinary(
             {
               buffer: file.buffer,
@@ -65,33 +56,23 @@ class FormStageAController {
             throw new Error("Cloudinary upload failed");
           }
 
-          // console.log(uploadResult.secure_url);
-          // console.log("user", userId);
+          const media = await Media.create({
+            formStageAId: formResult.projectId,
+            fileUrl: uploadResult.secure_url,
+            fileType: file.mimetype || "application/octet-stream",
+            userId,
+          });
 
-          // Create media record with transaction
-          const media = await Media.create(
-            {
-              formStageAId: formResult.projectId,
-              fileUrl: uploadResult.secure_url,
-              fileType: file.mimetype || "application/octet-stream",
-              // projectId: formResult.projectId,
-              userId: userId,
-            }
-            // transaction
-          );
           mediaRecords.push(media);
         } catch (fileError) {
           console.error("File processing error:", fileError);
-          // Continue with other files
         }
       }
 
-      // Validate if any files were successfully processed (when files were provided)
       if (files.length > 0 && mediaRecords.length === 0) {
         throw new Error("All file uploads failed");
       }
 
-      // Commit transaction if everything succeeded
       await conn.commit();
 
       res.status(201).json({
@@ -106,10 +87,9 @@ class FormStageAController {
         },
       });
     } catch (error) {
-      // Rollback transaction if any error occurred
-      if (conn) await conn.rollback(transaction);
-
+      if (conn) await conn.rollback();
       console.error("Controller error:", error);
+
       const statusCode = error.message.includes("required") ? 400 : 500;
 
       res.status(statusCode).json({
@@ -120,14 +100,16 @@ class FormStageAController {
             ? "Please log in and try again"
             : "Check your input and try again",
       });
+    } finally {
+      if (conn) conn.release();
     }
   }
 
   static async getByProjectId(req, res) {
     try {
-      const { projectId } = req.body.projectId;
-      const form = await FormStageA.findByProjectId(projectId);
+      const { projectId } = req.body;
 
+      const form = await FormStageA.findByProjectId(projectId);
       if (!form) {
         return res.status(404).json({
           success: false,
@@ -139,12 +121,18 @@ class FormStageAController {
 
       res.status(200).json({
         success: true,
-        data: { ...form, media },
+        data: {
+          ...form,
+          media: media || [],
+        },
       });
     } catch (error) {
+      console.error("Error:", error);
       res.status(500).json({
         success: false,
-        message: error.message,
+        message: "Server error",
+        error:
+          process.env.NODE_ENV === "development" ? error.message : undefined,
       });
     }
   }
@@ -154,6 +142,7 @@ class FormStageAController {
       const { id } = req.body.idProject;
       const userId = req.user?.id;
       const { body } = req;
+
       const form = await FormStageA.findById(id);
       if (!form) {
         return res.status(404).json({
@@ -164,7 +153,6 @@ class FormStageAController {
 
       const updatedForm = await FormStageA.update(id, body);
 
-      // Handle new file uploads
       const files = req.files
         ? Array.isArray(req.files)
           ? req.files
@@ -175,14 +163,25 @@ class FormStageAController {
 
       for (const file of files) {
         try {
-          const uploadResult = await uploadToCloudinary(file);
+          const uploadResult = await uploadToCloudinary(
+            {
+              buffer: file.buffer,
+              originalname: file.originalname,
+              mimetype: file.mimetype,
+            },
+            {
+              folder: `user_${userId}/project_documents`,
+              resource_type: "auto",
+            }
+          );
+
           if (uploadResult?.secure_url) {
-            await Media.create(
-              id,
-              uploadResult.secure_url,
-              file.mimetype,
-              userId
-            );
+            await Media.create({
+              formStageAId: id,
+              fileUrl: uploadResult.secure_url,
+              fileType: file.mimetype,
+              userId,
+            });
             uploadResults.push(uploadResult.secure_url);
           }
         } catch (uploadError) {
@@ -203,11 +202,27 @@ class FormStageAController {
         message: "Stage A form updated successfully",
       });
     } catch (error) {
+      console.error("Update error:", error);
       res.status(500).json({
         success: false,
         message: error.message,
       });
     }
+  }
+
+  static async fetchUserProjects(req, res) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: "Authentication required",
+        });
+      }
+      const projects = await FormStageA.findAll(userId);
+  } catch(error) {
+    console.log("error");
+    
   }
 }
 

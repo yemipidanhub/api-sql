@@ -5,53 +5,42 @@ const AppError = require('../utils/appError');
 
 exports.authenticate = async (req, res, next) => {
   try {
-    // 1. Get token from header
-    const authHeader = req.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-      return next(new AppError('Authorization header missing or invalid', 401));
-    }
-    const token = authHeader.split(' ')[1];
+    // Skip authentication for OPTIONS preflight requests
+    if (req.method === 'OPTIONS') return next();
 
-    console.log("Token received:", token);  // Log the token to see what is being passed
+    // 1. Check for token
+    const token = req.headers?.authorization?.split(' ')[1];
+    if (!token) {
+      return next(new AppError('Please log in to access', 401));
+    }
 
     // 2. Verify token
     const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
-    
-    console.log("Decoded token:", decoded);  // Log the decoded token
 
-    // 3. Validate payload contains ID
-    if (!decoded.id) {
-      throw new Error('Token payload missing user ID');
-    }
-
-    // 4. Get user (only essential fields)
-    const currentUser = await User.findByPk(decoded.id, {
-      attributes: ['id', 'passwordChangedAt']
-    });
-
-    console.log("User fetched from DB:", currentUser);  // Log the user fetched from the DB
-
+    // 3. Check if user still exists
+    const currentUser = await User.findByPk(decoded.id);
     if (!currentUser) {
       return next(new AppError('User no longer exists', 401));
     }
 
-    // 5. Attach user to request
+    // 4. Attach user to request
     req.user = currentUser;
     next();
 
   } catch (err) {
-    console.error('JWT Error:', err.name, err.message);
-    
+    // Handle token errors
     if (err.name === 'TokenExpiredError') {
-      return next(new AppError('Token expired', 401));
+      return next(new AppError('Session expired. Please log in again', 401));
     }
     if (err.name === 'JsonWebTokenError') {
-      return next(new AppError('Invalid token', 401));
+      return next(new AppError('Invalid token. Please log in again', 401));
     }
-    
-    return next(new AppError('Authentication failed', 401));
+    next(err);
   }
 };
+
+// Completely open authorization (only checks authentication)
+exports.authorize = (req, res, next) => next(); // No restrictions
 
 
 exports.restrictTo = (...allowedRoles) => {

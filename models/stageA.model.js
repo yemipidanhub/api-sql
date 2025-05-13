@@ -160,6 +160,20 @@ static async updateStatus(projectId, data) {
     );
     return this.findById(id);
   }
+
+  // find all projects for a specific user
+  static async findAll(userId) {
+    try {
+      const [rows] = await db.execute(
+        "SELECT * FROM form_stage_a WHERE userId = ? ORDER BY createdAt DESC",
+        [userId]
+      );
+      return rows;
+    } catch (error) {
+      console.error("Error fetching forms for user:", error);
+      throw new Error("Failed to fetch user's projects");
+    }
+  }
 }
 
 module.exports = FormStageA;
