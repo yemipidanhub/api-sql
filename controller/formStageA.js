@@ -122,31 +122,42 @@ class FormStageAController {
     }
   }
 
-  static async getByProjectId(req, res) {
-    try {
-      const { projectId } = req.params;
-      const form = await FormStageA.findByProjectId(projectId);
-
-      if (!form) {
-        return res.status(404).json({
-          success: false,
-          message: "Form not found",
-        });
-      }
-
-      const media = await Media.findByFormStageAId(form.id);
-
-      res.status(200).json({
-        success: true,
-        data: { ...form, media },
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: error.message,
-      });
+  // In your formStageA controller
+ static async getByProjectId(req, res) {
+  try {
+    const { projectId } = req.params;
+    const form = await FormStageA.findByProjectId(projectId);
+    
+    if (!form) {
+      return res.status(404).json({ success: false, message: "Project not found" });
     }
+
+    // Ensure media is always an array
+    const [mediaRows] = await db.execute(
+      "SELECT id, type, filename, originalname FROM media WHERE formStageAId = ?",
+      [form.id]
+    );
+
+    res.status(200).json({
+      success: true,
+      data: {
+        ...form,
+        media: mediaRows || [], // Ensure media is never undefined
+        projectId: form.projectId
+      }
+    });
+
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
+}
+
+
 
   static async update(req, res) {
     try {

@@ -23,13 +23,10 @@ router.post('/stage-a',
 
 router.get('/stage-a/:projectId',
   authenticate,
-  restrictTo('admin', 'project-manager', 'field-engineer', 'client'), // Clients can view
   FormStageAController.getByProjectId.bind(FormStageAController)
 );
-
 router.put('/stage-a/:id',
   authenticate,
-  // restrictTo('admin', 'project-manager'), // Only admins and PMs can update
   upload,
   FormStageAController.update.bind(FormStageAController)
 );
