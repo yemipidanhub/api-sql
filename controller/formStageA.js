@@ -220,9 +220,9 @@ class FormStageAController {
         });
       }
       const projects = await FormStageA.findAll(userId);
-  } catch(error) {
-    console.log("error");
-    
+    } catch (error) {
+      console.log("error");
+    }
   }
 }
 
