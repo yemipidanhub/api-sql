@@ -1,11 +1,11 @@
-const FormStageC = require('../models/StageC.model');
-const FormStageB = require('../models/StageB.model');
+const FormStageC = require('../models/stageC.model');
+const FormStageB = require('../models/stageB.model');
 const { uploadToCloudinary } = require('../config/cloudinary');
 
 class FormStageCController {
   static async create(req, res) {
     try {
-      const { formStageBId } = req.params;
+      const { formStageBId } = req.body.formStageBId;
       const { body, userId } = req;
       
       // Verify that Stage B exists
@@ -68,7 +68,7 @@ class FormStageCController {
 
   static async getByStageBId(req, res) {
     try {
-      const { formStageBId } = req.params;
+      const { formStageBId } = req.body.formStageBId;
       const form = await FormStageC.findByFormStageBId(formStageBId);
       
       if (!form) {
@@ -92,7 +92,7 @@ class FormStageCController {
 
   static async update(req, res) {
     try {
-      const { id } = req.params;
+      const { id } = req.body.idProject;
       const { body } = req;
       
       const form = await FormStageC.findById(id);

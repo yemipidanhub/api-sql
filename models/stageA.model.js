@@ -107,6 +107,20 @@ class FormStageA {
     return rows[0];
   }
 
+static async updateStatus(projectId, data) {
+  const fields = Object.keys(data).map(key => `${key} = ?`).join(', ');
+  const values = [...Object.values(data), projectId];
+  const query = `UPDATE form_stage_a SET ${fields} WHERE projectId = ?`;
+
+  await db.execute(query, values);
+
+  return {
+    projectId: projectId,
+    status: "completed",
+  }
+}
+
+
   static async update(id, data) {
     await db.execute(
       `UPDATE form_stage_a SET 

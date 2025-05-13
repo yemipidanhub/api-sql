@@ -1,4 +1,4 @@
-const FormStageA = require("../models/StageA.model");
+const FormStageA = require("../models/stageA.model");
 const Media = require("../models/Media");
 const { uploadToCloudinary } = require("../config/cloudinary");
 const { log } = require("winston");
@@ -29,7 +29,7 @@ class FormStageAController {
 
       // 1. Create the form record with transaction
       const formResult = await FormStageA.create(req.body, userId);
-      console.log(formResult);
+      // console.log(formResult);
 
       // 2. Process files if they exist
       const files = req.files
@@ -65,15 +65,16 @@ class FormStageAController {
             throw new Error("Cloudinary upload failed");
           }
 
-          console.log(uploadResult.secure_url);
-          console.log("user", userId);
+          // console.log(uploadResult.secure_url);
+          // console.log("user", userId);
 
           // Create media record with transaction
           const media = await Media.create(
             {
-              formStageAId: formResult.id,
+              formStageAId: formResult.projectId,
               fileUrl: uploadResult.secure_url,
               fileType: file.mimetype || "application/octet-stream",
+              // projectId: formResult.projectId,
               userId: userId,
             }
             // transaction
@@ -124,7 +125,7 @@ class FormStageAController {
 
   static async getByProjectId(req, res) {
     try {
-      const { projectId } = req.params;
+      const { projectId } = req.body.projectId;
       const form = await FormStageA.findByProjectId(projectId);
 
       if (!form) {
@@ -134,7 +135,7 @@ class FormStageAController {
         });
       }
 
-      const media = await Media.findByFormStageAId(form.id);
+      const media = await Media.findByFormStageAId(form.projectId);
 
       res.status(200).json({
         success: true,
@@ -150,7 +151,7 @@ class FormStageAController {
 
   static async update(req, res) {
     try {
-      const { id } = req.params;
+      const { id } = req.body.idProject;
       const userId = req.user?.id;
       const { body } = req;
       const form = await FormStageA.findById(id);

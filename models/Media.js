@@ -1,7 +1,8 @@
 const db = require('../config/mysql2');
 
 class Media {
-  static async create({ formStageAId = null, fileUrl, fileType, userId }) {
+  static async create({ formStageAId, fileUrl, fileType, userId }) {
+    console.log(formStageAId)
     const [result] = await db.execute(
       'INSERT INTO media (formStageAId, fileUrl, fileType, userId) VALUES (?, ?, ?, ?)',
       [formStageAId, fileUrl, fileType, userId]

@@ -1,14 +1,30 @@
-const FormStageB = require('../models/StageB.model');
-const FormStageA = require('../models/StageA.model');
+const FormStageB = require('../models/stageB.model');
+const FormStageA = require('../models/stageA.model');
+const Media = require("../models/Media");
+const { uploadToCloudinary } = require("../config/cloudinary");
+const db = require("../config/mysql2");
 
 class FormStageBController {
   static async create(req, res) {
+    let conn;
+    let transaction;
     try {
-      const { formStageAId } = req.params;
-      const { body, userId } = req;
+      conn = await db.getConnection();
+      await conn.beginTransaction();
+
+
+      // const { formStageAId } = req.params;
+      // console.log(formStageAId)
+      const { body, user } = req;
+      console.log(req.files);
+      const formStageAId = req.body.formStageAId;
+      console.log(formStageAId);
+      console.log(body);
+      // console.log(data);
+      const userId = user.id;
       
       // Verify that Stage A exists
-      const stageA = await FormStageA.findById(formStageAId);
+      const stageA = await FormStageA.findByProjectId(formStageAId);
       if (!stageA) {
         return res.status(404).json({ 
           success: false, 
@@ -17,23 +33,105 @@ class FormStageBController {
       }
       
       const result = await FormStageB.create(body, formStageAId, userId);
+
+      const changeStatus = await FormStageA.updateStatus(formStageAId, {status:"completed"})
+
+      const files = req.files
+        ? Array.isArray(req.files)
+          ? req.files
+          : [req.files]
+        : [];
+
+      const mediaRecords = [];
+
+      for (const file of files) {
+        try {
+          // Validate file structure
+          if (!file?.buffer && !file?.path) {
+            console.warn("Invalid file structure:", file);
+            continue;
+          }
+
+          // Upload to Cloudinary
+          const uploadResult = await uploadToCloudinary(
+            {
+              buffer: file.buffer,
+              originalname: file.originalname,
+              mimetype: file.mimetype,
+            },
+            {
+              folder: `user_${userId}/project_documents`,
+              resource_type: "auto",
+            }
+          );
+
+          if (!uploadResult?.secure_url) {
+            throw new Error("Cloudinary upload failed");
+          }
+          console.log(result.projectId);
+          
+
+          // console.log(uploadResult.secure_url);
+          // console.log("user", userId);
+
+          // Create media record with transaction
+          const media = await Media.create(
+            {
+              formStageAId: result.formStageAId,
+              fileUrl: uploadResult.secure_url,
+              fileType: file.mimetype || "application/octet-stream",
+              // projectId: formResult.projectId,
+              userId: userId,
+            }
+            // transaction
+          );
+          mediaRecords.push(media);
+        } catch (fileError) {
+          console.error("File processing error:", fileError);
+          // Continue with other files
+        }
+      }
+      // Validate if any files were successfully processed (when files were provided)
+      if (files.length > 0 && mediaRecords.length === 0) {
+        throw new Error("All file uploads failed");
+      }
+
+      // Commit transaction if everything succeeded
+      await conn.commit();
       
-      res.status(201).json({ 
-        success: true, 
-        data: result,
-        message: 'Stage B form created successfully' 
+      res.status(201).json({
+        success: true,
+        data: {
+          form: result,
+          media: mediaRecords,
+          updateFormA: changeStatus,
+          message:
+            mediaRecords.length === files.length
+              ? "Form and all files processed successfully"
+              : `Form created with ${mediaRecords.length} of ${files.length} files`,
+        },
       });
     } catch (error) {
-      res.status(500).json({ 
-        success: false, 
-        message: error.message 
+      // Rollback transaction if any error occurred
+      if (conn) await conn.rollback(transaction);
+
+      console.error("Controller error:", error);
+      const statusCode = error.message.includes("required") ? 400 : 500;
+
+      res.status(statusCode).json({
+        success: false,
+        message: error.message || "Form creation failed",
+        suggestion:
+          statusCode === 401
+            ? "Please log in and try again"
+            : "Check your input and try again",
       });
     }
   }
 
   static async getByStageAId(req, res) {
     try {
-      const { formStageAId } = req.params;
+      const { formStageAId } = req.body.formStageAId;
       const form = await FormStageB.findByFormStageAId(formStageAId);
       
       if (!form) {
@@ -57,7 +155,7 @@ class FormStageBController {
 
   static async update(req, res) {
     try {
-      const { id } = req.params;
+      const { id } = req.body.idProject;
       const { body } = req;
       
       const form = await FormStageB.findById(id);

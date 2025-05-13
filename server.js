@@ -140,6 +140,17 @@ const userRoutes = require('./routes/userRoutes');
 const projectRoutes = require('./routes/projectRoutes'); // Changed from formRoutes to projectRoutes
 // const mediaRoutes = require('./routes/media.route'); // New media routes if needed
 
+// const pathToRegexp = require('path-to-regexp');
+// const original = pathToRegexp.pathToRegexp;
+
+// pathToRegexp.pathToRegexp = (path, keys, options) => {
+//   if (path.includes('://')) {
+//     console.trace('Invalid path detected:', path);
+//     throw new Error(`Remove protocol from path: ${path.split('://')[1]}`);
+//   }
+//   return original(path, keys, options);
+// };
+
 const app = express();
 
 // Connect to database
@@ -168,7 +179,7 @@ app.use(hpp());
 
 // Enable CORS
 const corsOptions = {
-  origin: ['https://ngwater.app', 'https://www.ngwater.app', 'http://localhost:5173'],
+  origin: ['https://ngwater.app', 'https://www.ngwater.app', 'http://localhost:5173', 'http://localhost:5174'],
   credentials: true
 };
 app.use(cors(corsOptions));
@@ -188,6 +199,17 @@ app.use('/api/v1/users', userRoutes);
 // Turn off ETag generation
 // app.disable('etag');
 // Health check
+
+// const appRoutes = [];
+// app._router.stack.forEach((middleware) => {
+//   if (middleware.route) {
+//     appRoutes.push(middleware.route.path);
+//   }
+// });
+
+// console.log("📌 Registered Routes:", appRoutes);
+
+
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK' });
 });

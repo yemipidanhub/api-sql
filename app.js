@@ -8,6 +8,8 @@ const globalErrorHandler = require('./utils/errorController');
 
 const app = express();
 
+
+
 // Middlewares
 app.use(cors());
 app.options('*', cors());

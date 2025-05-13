@@ -49,7 +49,7 @@ const { deleteFromCloudinary } = require('../config/cloudinary');
 class MediaController {
   static async delete(req, res) {
     try {
-      const { id } = req.params;
+      const { id } = req.body.idProject;
       const media = await Media.delete(id);
       
       if (!media) {
@@ -76,7 +76,7 @@ class MediaController {
 
   static async getByFormStageAId(req, res) {
     try {
-      const { formStageAId } = req.params;
+      const { formStageAId } = req.body.formStageAId;
       const media = await Media.findByFormStageAId(formStageAId);
       
       res.status(200).json({ 
