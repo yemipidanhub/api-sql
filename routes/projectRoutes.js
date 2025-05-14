@@ -32,8 +32,8 @@ router.post(
 
 // to use this, send projectId within your form
 router.get(
-  "/stage-a/getByProjectId",
-  authenticate,
+  "/stage-a/:projectId",
+  // authController.protect,
   FormStageAController.getByProjectId.bind(FormStageAController)
 );
 
