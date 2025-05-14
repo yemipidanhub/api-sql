@@ -81,7 +81,7 @@ class FormStageAController {
       res.status(201).json({
         success: true,
         data: {
-          form: { id: formResult.insertId, ...req.body },
+          form: { projectId: formResult.projectId, ...req.body },
           media: mediaRecords,
           message:
             mediaRecords.length === files.length

@@ -53,37 +53,22 @@ class FormStageBController {
           }
 
           // Upload to Cloudinary
-          const uploadResult = await uploadToCloudinary(
-            {
-              buffer: file.buffer,
-              originalname: file.originalname,
-              mimetype: file.mimetype,
-            },
-            {
-              folder: `user_${userId}/project_documents`,
-              resource_type: "auto",
-            }
-          );
+          const uploadResult = await uploadToCloudinary(file, {
+            folder: `user_${userId}/project_documents`,
+            resource_type: "auto",
+          });
 
-          if (!uploadResult?.secure_url) {
-            throw new Error("Cloudinary upload failed");
-          }
-          console.log(result.projectId);
-          
+          if (!uploadResult?.secure_url) continue;
 
-          // console.log(uploadResult.secure_url);
-          // console.log("user", userId);
-
-          // Create media record with transaction
-          const media = await Media.create(
-            {
-              formStageAId: result.formStageAId,
-              fileUrl: uploadResult.secure_url,
-              fileType: file.mimetype || "application/octet-stream",
-              // projectId: formResult.projectId,
-              userId: userId,
-            }
-            // transaction
+          const [media] = await conn.execute(
+            `INSERT INTO media (formStageAId, fileUrl, fileType, userId, originalname) VALUES (?, ?, ?, ?, ?)`,
+            [
+              result.projectId,
+              uploadResult.secure_url,
+              file.mimetype || "application/octet-stream",
+              userId,
+              file.originalname,
+            ]
           );
           mediaRecords.push(media);
         } catch (fileError) {
@@ -92,9 +77,9 @@ class FormStageBController {
         }
       }
       // Validate if any files were successfully processed (when files were provided)
-      if (files.length > 0 && mediaRecords.length === 0) {
-        throw new Error("All file uploads failed");
-      }
+      // if (files.length > 0 || mediaRecords.length === 0) {
+      //   throw new Error("All file uploads failed");
+      // }
 
       // Commit transaction if everything succeeded
       await conn.commit();
