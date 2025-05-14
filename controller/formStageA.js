@@ -101,7 +101,7 @@ class FormStageAController {
       });
     } finally {
       if (conn) conn.release();
-    }
+    } 
   }
 
   static async getByProjectId(req, res) {
