@@ -118,5 +118,9 @@ router.get(
   restrictTo("admin", "project-manager", "field-engineer", "client"),
   MediaController.getByFormStageAId.bind(MediaController)
 );
+router.get(
+  "/media/:projectId",
+  MediaController.getMedia.bind(MediaController)
+)
 
 module.exports = router;

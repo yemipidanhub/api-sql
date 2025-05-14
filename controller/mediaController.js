@@ -1,6 +1,7 @@
 const db = require('../config/db');
 const path = require('path');
 const fs = require('fs');
+const Media = require('../models/Media');
 
 class MediaController {
   static async download(req, res) {
@@ -111,6 +112,19 @@ static async getByProjectId(req, res) {
     });
   }
 }
+
+static async getMedia(req, res) {
+  try{
+    const {projectId} = req.params;
+    const media = await Media.findByFormStageAId(projectId)
+    res.status(200).json({
+      success: true,
+      data: media
+    })
+  } catch(error) {
+    console.log("error:", error)
+  }
+} 
 
 
   static async delete(req, res) {
