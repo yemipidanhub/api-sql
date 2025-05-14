@@ -1,3 +1,5 @@
+const FormStageA = require("../models/stageA.model");
+const Media = require("../models/Media");
 const db = require("../config/mysql2");
 const { uploadToCloudinary } = require("../config/cloudinary");
 
@@ -11,9 +13,14 @@ class FormStageAController {
     }
 
     const userId = req.user.id;
+    console.log("Processing request for user:", userId);
+    console.log("Received body:", req.body);
+    console.log("Received files:", req.files);
+
     let conn;
 
     try {
+      conn = await db.getConnection();
       conn = await db.getConnection();
       await conn.beginTransaction();
 
@@ -29,6 +36,11 @@ class FormStageAController {
 
       for (const file of files) {
         try {
+          if (!file?.buffer && !file?.path) {
+            console.warn("Invalid file structure:", file);
+            continue;
+          }
+
           if (!file?.buffer && !file?.path) continue;
 
           const uploadResult = await uploadToCloudinary(
@@ -79,13 +91,17 @@ class FormStageAController {
       });
     } catch (error) {
       if (conn) await conn.rollback();
+      if (conn) await conn.rollback();
       console.error("Controller error:", error);
+
 
       const statusCode = error.message.includes("required") ? 400 : 500;
       res.status(statusCode).json({
         success: false,
         message: error.message || "Form creation failed",
       });
+    } finally {
+      if (conn) conn.release();
     } finally {
       if (conn) conn.release();
     }
@@ -158,7 +174,7 @@ class FormStageAController {
 
   static async update(req, res) {
     try {
-      const { id } = req.params;
+      const { id } = req.body.idProject;
       const userId = req.user?.id;
 
       // Check if form exists
@@ -186,7 +202,18 @@ class FormStageAController {
 
       for (const file of files) {
         try {
-          const uploadResult = await uploadToCloudinary(file);
+          const uploadResult = await uploadToCloudinary(
+            {
+              buffer: file.buffer,
+              originalname: file.originalname,
+              mimetype: file.mimetype,
+            },
+            {
+              folder: `user_${userId}/project_documents`,
+              resource_type: "auto",
+            }
+          );
+
           if (uploadResult?.secure_url) {
             await db.execute(
               "INSERT INTO media SET ?",
@@ -211,10 +238,26 @@ class FormStageAController {
         newMedia: uploadResults,
       });
     } catch (error) {
+      console.error("Update error:", error);
       res.status(500).json({
         success: false,
         message: error.message,
       });
+    }
+  }
+
+  static async fetchUserProjects(req, res) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: "Authentication required",
+        });
+      }
+      const projects = await FormStageA.findAll(userId);
+    } catch (error) {
+      console.log("error");
     }
   }
 }

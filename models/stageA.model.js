@@ -107,6 +107,20 @@ class FormStageA {
     return rows[0];
   }
 
+static async updateStatus(projectId, data) {
+  const fields = Object.keys(data).map(key => `${key} = ?`).join(', ');
+  const values = [...Object.values(data), projectId];
+  const query = `UPDATE form_stage_a SET ${fields} WHERE projectId = ?`;
+
+  await db.execute(query, values);
+
+  return {
+    projectId: projectId,
+    status: "completed",
+  }
+}
+
+
   static async update(id, data) {
     await db.execute(
       `UPDATE form_stage_a SET 
@@ -145,6 +159,20 @@ class FormStageA {
       ]
     );
     return this.findById(id);
+  }
+
+  // find all projects for a specific user
+  static async findAll(userId) {
+    try {
+      const [rows] = await db.execute(
+        "SELECT * FROM form_stage_a WHERE userId = ? ORDER BY createdAt DESC",
+        [userId]
+      );
+      return rows;
+    } catch (error) {
+      console.error("Error fetching forms for user:", error);
+      throw new Error("Failed to fetch user's projects");
+    }
   }
 }
 
