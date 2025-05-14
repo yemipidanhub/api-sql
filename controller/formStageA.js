@@ -107,6 +107,7 @@ class FormStageAController {
   static async getByProjectId(req, res) {
     try {
       const { projectId } = req.params;
+      console.log(projectId)
 
       // 1. Get the form
       const [formRows] = await db.execute(
