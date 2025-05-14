@@ -1,49 +1,47 @@
-// module.exports = (sequelize, DataTypes) => {
-//     const Project = sequelize.define('Project', {
-//       id: {
-//         type: DataTypes.UUID,
-//         defaultValue: DataTypes.UUIDV4,
-//         primaryKey: true
-//       },
-//       userId: {
-//         type: DataTypes.UUID,
-//         allowNull: false
-//       },
-//       status: {
-//         type: DataTypes.ENUM('draft', 'ongoing', 'completed'),
-//         defaultValue: 'draft'
-//       }
-//     }, {
-//       timestamps: true
-//     });
-  
-//     Project.associate = (models) => {
-//       Project.hasOne(models.FormStageA, { foreignKey: 'projectId' });
-//       Project.hasOne(models.FormStageB, { foreignKey: 'projectId' });
-//     };
-  
-//     return Project;
-//   };
+const DatabaseService = require('../services/database');
 
-const { Sequelize } = require('sequelize');
-const sequelize = require('../config/db');
+class Project {
+  static async findAll({ status, state, lga, projectId, startDate, endDate, page = 1, pageSize = 10 }) {
+    let query = `SELECT * FROM projects WHERE 1=1`;
+    const params = [];
+    
+    if (status) {
+      query += ` AND status = ?`;
+      params.push(status);
+    }
+    
+    if (state) {
+      query += ` AND state = ?`;
+      params.push(state);
+    }
+    
+    if (lga) {
+      query += ` AND lga = ?`;
+      params.push(lga);
+    }
+    
+    if (projectId) {
+      query += ` AND projectID LIKE ?`;
+      params.push(`%${projectId}%`);
+    }
+    
+    if (startDate && endDate) {
+      query += ` AND startDate BETWEEN ? AND ?`;
+      params.push(new Date(startDate), new Date(endDate));
+    }
 
-// const FormStageA = require('./stageA.model')(sequelize, Sequelize.DataTypes);
-// const FormStageB = require('./stageB.model')(sequelize, Sequelize.DataTypes);
-// const FormStageC = require('./stageC.model')(sequelize, Sequelize.DataTypes);
-// const Upload = require('./Upload.model')(sequelize, Sequelize.DataTypes);
+    // Get total count
+    const countQuery = `SELECT COUNT(*) as total FROM (${query}) as filtered`;
+    const [countResult] = await DatabaseService.query(countQuery, params);
+    const total = countResult[0].total;
 
-// Define relationships
-FormStageA.hasOne(FormStageB, { foreignKey: 'formStageAId' });
-FormStageB.belongsTo(FormStageA, { foreignKey: 'formStageAId' });
+    // Add pagination
+    query += ` LIMIT ? OFFSET ?`;
+    params.push(parseInt(pageSize), (page - 1) * pageSize);
 
-FormStageB.hasOne(FormStageC, { foreignKey: 'formStageBId' });
-FormStageC.belongsTo(FormStageB, { foreignKey: 'formStageBId' });
+    const projects = await DatabaseService.query(query, params);
+    return { projects, total };
+  }
+}
 
-module.exports = {
-  sequelize,
-  FormStageA,
-  FormStageB,
-  FormStageC,
-  // Upload
-};
+module.exports = Project;

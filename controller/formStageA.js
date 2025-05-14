@@ -1,12 +1,8 @@
-const FormStageA = require("../models/StageA.model");
-const Media = require("../models/Media");
-const { uploadToCloudinary } = require("../config/cloudinary");
-const { log } = require("winston");
 const db = require("../config/mysql2");
+const { uploadToCloudinary } = require("../config/cloudinary");
 
 class FormStageAController {
   static async create(req, res) {
-    // Validate authentication first
     if (!req.user?.id) {
       return res.status(401).json({
         success: false,
@@ -15,40 +11,26 @@ class FormStageAController {
     }
 
     const userId = req.user.id;
-    console.log("Processing request for user:", userId);
-    console.log("Received body:", req.body);
-    console.log("Received files:", req.files);
-
-    let transaction;
     let conn;
 
     try {
-      const conn = await db.getConnection();
-      // Start database transaction for atomic operations
+      conn = await db.getConnection();
       await conn.beginTransaction();
 
-      // 1. Create the form record with transaction
-      const formResult = await FormStageA.create(req.body, userId);
-      console.log(formResult);
+      // 1. Create the form record
+      const [formResult] = await conn.execute(
+        `INSERT INTO form_stage_a SET ?`, 
+        [req.body]
+      );
 
-      // 2. Process files if they exist
-      const files = req.files
-        ? Array.isArray(req.files)
-          ? req.files
-          : [req.files]
-        : [];
-
+      // 2. Process files
+      const files = req.files ? (Array.isArray(req.files) ? req.files : [req.files]) : [];
       const mediaRecords = [];
 
       for (const file of files) {
         try {
-          // Validate file structure
-          if (!file?.buffer && !file?.path) {
-            console.warn("Invalid file structure:", file);
-            continue;
-          }
+          if (!file?.buffer && !file?.path) continue;
 
-          // Upload to Cloudinary
           const uploadResult = await uploadToCloudinary(
             {
               buffer: file.buffer,
@@ -61,156 +43,172 @@ class FormStageAController {
             }
           );
 
-          if (!uploadResult?.secure_url) {
-            throw new Error("Cloudinary upload failed");
-          }
+          if (!uploadResult?.secure_url) continue;
 
-          console.log(uploadResult.secure_url);
-          console.log("user", userId);
-
-          // Create media record with transaction
-          const media = await Media.create(
-            {
-              formStageAId: formResult.id,
+          const [media] = await conn.execute(
+            `INSERT INTO media SET ?`,
+            [{
+              formStageAId: formResult.insertId,
               fileUrl: uploadResult.secure_url,
               fileType: file.mimetype || "application/octet-stream",
               userId: userId,
-            }
-            // transaction
+              originalname: file.originalname
+            }]
           );
           mediaRecords.push(media);
         } catch (fileError) {
           console.error("File processing error:", fileError);
-          // Continue with other files
         }
       }
 
-      // Validate if any files were successfully processed (when files were provided)
       if (files.length > 0 && mediaRecords.length === 0) {
         throw new Error("All file uploads failed");
       }
 
-      // Commit transaction if everything succeeded
       await conn.commit();
 
       res.status(201).json({
         success: true,
         data: {
-          form: formResult,
+          form: { id: formResult.insertId, ...req.body },
           media: mediaRecords,
-          message:
-            mediaRecords.length === files.length
-              ? "Form and all files processed successfully"
-              : `Form created with ${mediaRecords.length} of ${files.length} files`,
+          message: mediaRecords.length === files.length
+            ? "Form and all files processed successfully"
+            : `Form created with ${mediaRecords.length} of ${files.length} files`,
         },
       });
     } catch (error) {
-      // Rollback transaction if any error occurred
-      if (conn) await conn.rollback(transaction);
-
+      if (conn) await conn.rollback();
       console.error("Controller error:", error);
-      const statusCode = error.message.includes("required") ? 400 : 500;
 
+      const statusCode = error.message.includes("required") ? 400 : 500;
       res.status(statusCode).json({
         success: false,
         message: error.message || "Form creation failed",
-        suggestion:
-          statusCode === 401
-            ? "Please log in and try again"
-            : "Check your input and try again",
       });
+    } finally {
+      if (conn) conn.release();
     }
   }
 
-  // In your formStageA controller
- static async getByProjectId(req, res) {
+  static async getByProjectId(req, res) {
   try {
     const { projectId } = req.params;
-    const form = await FormStageA.findByProjectId(projectId);
     
-    if (!form) {
-      return res.status(404).json({ success: false, message: "Project not found" });
+    // 1. Get the form
+    const [formRows] = await db.execute(
+      "SELECT * FROM form_stage_a WHERE projectId = ? LIMIT 1",
+      [projectId]
+    );
+
+    if (formRows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No Stage A form found with this project ID",
+      });
     }
 
-    // Ensure media is always an array
-    const [mediaRows] = await db.execute(
-      "SELECT id, type, filename, originalname FROM media WHERE formStageAId = ?",
-      [form.id]
-    );
+    const form = formRows[0];
+
+    // 2. Get media with fallback for missing columns
+    let media = [];
+    try {
+      // First try with originalname column
+      try {
+        const [mediaRows] = await db.execute(
+          "SELECT id, fileUrl as url, originalname, fileType as type FROM media WHERE formStageAId = ?",
+          [form.id]
+        );
+        media = mediaRows;
+      } catch (e) {
+        // Fallback if originalname column doesn't exist
+        if (e.code === 'ER_BAD_FIELD_ERROR') {
+          const [mediaRows] = await db.execute(
+            "SELECT id, fileUrl as url, fileType as type FROM media WHERE formStageAId = ?",
+            [form.id]
+          );
+          media = mediaRows.map(m => ({
+            ...m,
+            originalname: m.url.split('/').pop() || 'file' // Simple fallback
+          }));
+        } else {
+          throw e;
+        }
+      }
+    } catch (mediaError) {
+      console.error("Error fetching media:", mediaError);
+    }
 
     res.status(200).json({
       success: true,
-      data: {
-        ...form,
-        media: mediaRows || [], // Ensure media is never undefined
+      data: { 
+        ...form, 
+        media,
         projectId: form.projectId
-      }
+      },
     });
-
   } catch (error) {
-    console.error("Error:", error);
+    console.error("Error fetching Stage A form:", error);
     res.status(500).json({
       success: false,
-      message: "Server error",
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: "Server error while fetching form",
     });
   }
 }
-
-
 
   static async update(req, res) {
     try {
       const { id } = req.params;
       const userId = req.user?.id;
-      const { body } = req;
-      const form = await FormStageA.findById(id);
-      if (!form) {
+
+      // Check if form exists
+      const [formRows] = await db.execute(
+        "SELECT * FROM form_stage_a WHERE id = ? LIMIT 1",
+        [id]
+      );
+
+      if (formRows.length === 0) {
         return res.status(404).json({
           success: false,
           message: "Form not found",
         });
       }
 
-      const updatedForm = await FormStageA.update(id, body);
+      // Update form
+      await db.execute(
+        "UPDATE form_stage_a SET ? WHERE id = ?",
+        [req.body, id]
+      );
 
-      // Handle new file uploads
-      const files = req.files
-        ? Array.isArray(req.files)
-          ? req.files
-          : [req.files]
-        : [];
-
+      // Handle file uploads
+      const files = req.files ? (Array.isArray(req.files) ? req.files : [req.files]) : [];
       const uploadResults = [];
 
       for (const file of files) {
         try {
           const uploadResult = await uploadToCloudinary(file);
           if (uploadResult?.secure_url) {
-            await Media.create(
-              id,
-              uploadResult.secure_url,
-              file.mimetype,
-              userId
+            await db.execute(
+              "INSERT INTO media SET ?",
+              [{
+                formStageAId: id,
+                fileUrl: uploadResult.secure_url,
+                fileType: file.mimetype,
+                userId: userId,
+                originalname: file.originalname
+              }]
             );
             uploadResults.push(uploadResult.secure_url);
           }
         } catch (uploadError) {
-          console.error(
-            "Failed to upload file:",
-            file?.originalname,
-            uploadError
-          );
+          console.error("Failed to upload file:", uploadError);
         }
       }
 
       res.status(200).json({
         success: true,
-        data: {
-          ...updatedForm,
-          newMedia: uploadResults,
-        },
         message: "Stage A form updated successfully",
+        newMedia: uploadResults,
       });
     } catch (error) {
       res.status(500).json({

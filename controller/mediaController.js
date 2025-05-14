@@ -1,95 +1,131 @@
-// const fs = require('fs').promises;
-// const path = require('path');
-// const { v4: uuidv4 } = require('uuid');
-
-// const uploadDir = path.join(__dirname, '../../uploads');
-
-// // Ensure upload directory exists
-// async function ensureUploadDir() {
-//   try {
-//     await fs.mkdir(uploadDir, { recursive: true });
-//   } catch (err) {
-//     if (err.code !== 'EEXIST') throw err;
-//   }
-// }
-
-// // Save uploaded file
-// exports.saveFile = async (file, subfolder = '') => {
-//   await ensureUploadDir();
-  
-//   const folderPath = path.join(uploadDir, subfolder);
-//   await fs.mkdir(folderPath, { recursive: true });
-  
-//   const fileExt = path.extname(file.originalname);
-//   const filename = `${uuidv4()}${fileExt}`;
-//   const filepath = path.join(folderPath, filename);
-  
-//   await fs.rename(file.path, filepath);
-  
-//   return path.join(subfolder, filename);
-// };
-
-// // Delete file
-// exports.deleteFile = async (filepath) => {
-//   if (!filepath) return;
-  
-//   const fullPath = path.join(uploadDir, filepath);
-//   try {
-//     await fs.unlink(fullPath);
-//   } catch (err) {
-//     if (err.code !== 'ENOENT') throw err;
-//   }
-// };
-
-
-
-const Media = require('../models/Media');
-const { deleteFromCloudinary } = require('../config/cloudinary');
+const db = require('../config/db');
+const path = require('path');
+const fs = require('fs');
 
 class MediaController {
-  static async delete(req, res) {
+  static async download(req, res) {
     try {
       const { id } = req.params;
-      const media = await Media.delete(id);
       
-      if (!media) {
-        return res.status(404).json({ 
-          success: false, 
-          message: 'Media not found' 
+      // 1. Get media info from database
+      const [mediaRows] = await db.execute(
+        "SELECT * FROM media WHERE id = ? LIMIT 1",
+        [id]
+      );
+      
+      if (mediaRows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "File not found"
         });
       }
       
-      // Delete from Cloudinary
-      await deleteFromCloudinary(media.fileUrl);
-      
-      res.status(200).json({ 
-        success: true, 
-        message: 'Media deleted successfully' 
+      const media = mediaRows[0];
+
+      // 2. Handle Cloudinary URLs
+      if (media.url.includes('cloudinary')) {
+        return res.redirect(media.url);
+      }
+
+      // 3. Handle local files
+      const filePath = path.join(__dirname, '../uploads', media.filename);
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({
+          success: false,
+          message: "File not found on server"
+        });
+      }
+
+      res.download(filePath, media.originalname || media.filename, (err) => {
+        if (err) {
+          console.error("Download failed:", err);
+          res.status(500).json({
+            success: false,
+            message: "Failed to download file"
+          });
+        }
       });
     } catch (error) {
-      res.status(500).json({ 
-        success: false, 
-        message: error.message 
+      console.error("Download error:", error);
+      res.status(500).json({
+        success: false,
+        message: error.message || "Download failed"
       });
     }
   }
+// }
 
-  static async getByFormStageAId(req, res) {
+// module.exports = MediaController;
+static async getByFormStageAId(req, res) {
+  try {
+    const { formStageAId } = req.params;
+
+    const mediaFiles = await Upload.findAll({
+      where: { formStageAId }
+    });
+
+    if (!mediaFiles.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No media found for this Form Stage A ID"
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: mediaFiles
+    });
+  } catch (error) {
+    console.error("GetByFormStageAId error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Something went wrong"
+    });
+  }
+}
+
+  static async delete(req, res) {
     try {
-      const { formStageAId } = req.params;
-      const media = await Media.findByFormStageAId(formStageAId);
-      
-      res.status(200).json({ 
-        success: true, 
-        data: media 
+      const { id } = req.params;
+      const media = await Upload.findByPk(id);
+
+      if (!media) {
+        return res.status(404).json({
+          success: false,
+          message: "Media not found"
+        });
+      }
+
+      // Delete from Cloudinary if applicable
+      if (media.url.includes('cloudinary') && media.publicId) {
+        await cloudinary.uploader.destroy(media.publicId);
+      } else {
+        // Delete local file
+        const filePath = path.join(__dirname, '../uploads', media.name);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      }
+
+      // Delete from database
+      await media.destroy();
+
+      return res.status(200).json({
+        success: true,
+        message: "Media deleted successfully"
       });
     } catch (error) {
-      res.status(500).json({ 
-        success: false, 
-        message: error.message 
+      console.error("Delete error:", error);
+      res.status(500).json({
+        success: false,
+        message: error.message || "Failed to delete media"
       });
     }
   }
 }
+
+
+
+
 
 module.exports = MediaController;

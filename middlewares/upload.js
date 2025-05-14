@@ -28,15 +28,16 @@ const allAllowedTypes = [
 const memoryStorage = multer.memoryStorage();
 
 // DISK STORAGE (Alternative)
-const diskStorage = multer.diskStorage({
+const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, uploadDir);
+    cb(null, path.join(__dirname, '../uploads'));
   },
   filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `${uuidv4()}${ext}`);
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
   }
 });
+
 
 // File type validation
 const fileValidator = (file) => {
@@ -49,7 +50,7 @@ const fileValidator = (file) => {
 
 // General upload (memory storage recommended)
 const upload = multer({
-  storage: memoryStorage,
+  storage: storage,
   fileFilter: (req, file, cb) => {
     try {
       fileValidator(file);
