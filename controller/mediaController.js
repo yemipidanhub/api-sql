@@ -84,6 +84,35 @@ static async getByFormStageAId(req, res) {
   }
 }
 
+static async getByProjectId(req, res) {
+  try {
+    const { projectId } = req.params;
+
+    const mediaFiles = await Upload.findAll({
+      where: { projectId }
+    });
+
+    if (!mediaFiles.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No media found for this project ID"
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: mediaFiles
+    });
+  } catch (error) {
+    console.error("getByProjectId error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Something went wrong"
+    });
+  }
+}
+
+
   static async delete(req, res) {
     try {
       const { id } = req.params;
@@ -123,9 +152,5 @@ static async getByFormStageAId(req, res) {
     }
   }
 }
-
-
-
-
 
 module.exports = MediaController;

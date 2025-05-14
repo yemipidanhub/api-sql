@@ -8,11 +8,11 @@ const db = require("../config/db");
 const { authenticate } = require("../middlewares/authMiddleware");
 
 router.get("/download/:id", authenticate, require("../controllers/MediaController").download);
+router.get("/media/project/:projectId", authenticate, require("../controllers/MediaController").getByProjectId);
 
 router.post("/", authenticate, upload.array("media", 10), async (req, res) => {
   const files = req.files;
-  const user = req.user; // From auth middleware
-
+  const user = req.user; 
   if (!files || files.length === 0) {
     return res.status(400).json({
       success: false,

@@ -17,24 +17,7 @@ const signToken = (id, role) => {
   });
 };
 
-// Updated to remove sensitive data from response
-// Update your token creation to include ONLY the user ID
-// const createSendToken = (user, statusCode, res) => {
-//   const token = jwt.sign(
-//     { id: user.id }, // Only include the ID
-//     process.env.JWT_SECRET,
-//     { expiresIn: process.env.JWT_EXPIRES_IN }
-//   );
-// res.status(statusCode).json({
-//   status: 'success',
-//   token,
-//   data: {
-//     id: user.id,
-//     name: user.name,
-//     email: user.email
-//   }
-// });
-// };
+
 const createSendToken = (user, statusCode, res) => {
   const token = jwt.sign(
     { id: user.id, role: user.role }, // ✅ Include role too
