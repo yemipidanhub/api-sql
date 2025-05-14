@@ -3,6 +3,7 @@ const Media = require("../models/Media");
 const { uploadToCloudinary } = require("../config/cloudinary");
 const db = require("../config/mysql2");
 
+
 class FormStageAController {
   static async create(req, res) {
     if (!req.user?.id) {
@@ -220,6 +221,8 @@ class FormStageAController {
         });
       }
       const projects = await FormStageA.findAll(userId);
+      console.log(projects);
+      res.status(200).json({success: true, data: projects});
     } catch (error) {
       console.log("error");
     }
