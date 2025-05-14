@@ -29,6 +29,7 @@ class FormStageAController {
         `INSERT INTO form_stage_a SET ?`, 
         [req.body]
       );
+      
 
       // 2. Process files
       const files = req.files ? (Array.isArray(req.files) ? req.files : [req.files]) : [];
@@ -102,9 +103,7 @@ class FormStageAController {
       });
     } finally {
       if (conn) conn.release();
-    } finally {
-      if (conn) conn.release();
-    }
+    } 
   }
 
   static async getByProjectId(req, res) {
