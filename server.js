@@ -51,9 +51,11 @@ app.use(helmet());
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100
+  max: 100, // limit each IP to 100 requests per windowMs
+  skip: (req, res) => req.method === 'OPTIONS' // ✅ Ignore preflight requests
 });
 app.use(limiter);
+
 
 // Prevent http param pollution
 app.use(hpp());
