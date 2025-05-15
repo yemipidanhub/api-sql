@@ -203,10 +203,10 @@ class FormStageB {
     return { ...data, id: result.insertId, formStageAId };
   }
 
-  static async findByFormStageAId(formStageAId) {
+  static async findById(projectId) {
     const [rows] = await db.execute(
       "SELECT * FROM form_stage_b WHERE formStageAId = ?",
-      [formStageAId]
+      [projectId]
     );
     return rows[0];
   }

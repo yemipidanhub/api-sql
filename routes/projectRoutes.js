@@ -77,11 +77,16 @@ router.put(
   FormStageBController.update.bind(FormStageBController)
 );
 
+router.get(
+  "/stage-b/findProject/:projectId",
+  FormStageBController.findProject.bind(FormStageBController)
+)
+
 // ======================
 // Stage C Routes
 // add the formStageBId to form body
 router.post(
-  "/stage-c/formStageBId",
+  "/stage-c/:projectId",
   authenticate,
   // restrictTo('admin', 'project-manager', 'field-engineer'),
   stageCUpload,

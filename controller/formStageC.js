@@ -5,11 +5,11 @@ const { uploadToCloudinary } = require('../config/cloudinary');
 class FormStageCController {
   static async create(req, res) {
     try {
-      const { formStageBId } = req.body.formStageBId;
+      const { projectId } = req.params;
       const { body, userId } = req;
       
       // Verify that Stage B exists
-      const stageB = await FormStageB.findById(formStageBId);
+      const stageB = await FormStageB.findById(projectId);
       if (!stageB) {
         return res.status(404).json({ 
           success: false, 
@@ -51,7 +51,7 @@ class FormStageCController {
         samplingPointPhotosPaths
       };
       
-      const result = await FormStageC.create(formData, formStageBId, userId);
+      const result = await FormStageC.create(formData, projectId, userId);
       
       res.status(201).json({ 
         success: true, 

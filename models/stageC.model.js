@@ -149,10 +149,10 @@
 const db = require('../config/db');
 
 class FormStageC {
-  static async create(data, formStageBId, userId) {
+  static async create(data, projectId, userId) {
     const [result] = await db.execute(
       `INSERT INTO form_stage_c (
-        formStageBId, projectID, projectName, waterType, state, lga, community,
+        formStageBId, projectID, waterType, state, lga, community,
         gpsCoordinates, testerFullName, testerRole, testerLicenseNumber,
         testerPhoneNumber, testerEmailAddress, dateOfSampleCollection,
         timeOfCollection, collectedBy, weatherConditions, sampleContainerType,
@@ -161,7 +161,7 @@ class FormStageC {
         submissionDate, userId
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        formStageBId, data.projectID, data.projectName, data.waterType, data.state, data.lga, data.community,
+        projectId, data.projectID, data.waterType, data.state, data.lga, data.community,
         data.gpsCoordinates, data.testerFullName, data.testerRole, data.testerLicenseNumber,
         data.testerPhoneNumber, data.testerEmailAddress, data.dateOfSampleCollection,
         data.timeOfCollection, data.collectedBy, data.weatherConditions, data.sampleContainerType,
@@ -170,7 +170,7 @@ class FormStageC {
         data.nextStep, data.comments, data.signatureData, data.submissionDate, userId
       ]
     );
-    return { ...data, id: result.insertId, formStageBId };
+    return { ...data, id: result.insertId, projectId };
   }
 
   static async findByFormStageBId(formStageBId) {
