@@ -4,6 +4,7 @@ const router = express.Router();
 // Import controllers
 const FormStageAController = require("../controller/formStageA");
 const FormStageBController = require("../controller/formStageB");
+const FormStageBIIController = require("../controller/formStageBII")
 const FormStageCController = require("../controller/formStageC");
 const MediaController = require("../controller/mediaController");
 
@@ -44,6 +45,10 @@ router.put(
   upload,
   FormStageAController.update.bind(FormStageAController)
 );
+router.get(
+  "/stage-a/findProject/:projectId",
+  FormStageAController.findProject.bind(FormStageAController)
+)
 
 
 // ======================
@@ -80,6 +85,15 @@ router.put(
 router.get(
   "/stage-b/findProject/:projectId",
   FormStageBController.findProject.bind(FormStageBController)
+)
+
+
+// Stage B II Routes
+router.post(
+  "/stage-b-II/:formStageAId",
+  authenticate,
+  upload,
+  FormStageBIIController.create.bind(FormStageBIIController)
 )
 
 // ======================
