@@ -3,6 +3,8 @@ const db = require("../config/mysql2");
 
 class FormStageA {
 static async create(data, userId) {
+  console.log(data);
+  
   if (!data.terrainType) {
     throw new Error("Terrain type is required");
   }
@@ -57,7 +59,7 @@ static async create(data, userId) {
           projectId, projectType, agencyName, clientName, clientPhone, clientEmail,
           state, lga, town, streetAddress, latitude, longitude, consultantName,
           consultantPhone, consultantEmail, consultantLicense, consultantAddress,  
-          terrainType, strata_data, other_observations,
+          terrainType, strataData, otherObservations,
           estimatedOverburden, estimatedDepth, estimatedFractureDepth,
           estimatedWeatheredZone, curveType, accessibility, userId
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
