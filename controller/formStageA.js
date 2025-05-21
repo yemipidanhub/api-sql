@@ -107,13 +107,13 @@ class FormStageAController {
       });
     } finally {
       if (conn) conn.release();
-    } 
+    }
   }
 
   static async getByProjectId(req, res) {
     try {
       const { projectId } = req.params;
-      console.log(projectId)
+      console.log(projectId);
 
       // 1. Get the form
       const [formRows] = await db.execute(
@@ -267,6 +267,28 @@ class FormStageAController {
       res.status(200).json({ success: true, data: projects });
     } catch (error) {
       console.log("error");
+    }
+  }
+
+  static async findProject(req, res) {
+    try {
+      const { projectId } = req.params;
+      const form = await FormStageA.findByProjectId(projectId);
+      if (!form) {
+        return res.status(404).json({
+          success: false,
+          message: "No Stage A form found with this project ID",
+        });
+      }
+      res.status(200).json({
+        success: true,
+        data: form,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message,
+      });
     }
   }
 }

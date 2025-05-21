@@ -32,7 +32,7 @@ class FormStageBController {
       }
 
       const result = await FormStageB.create(body, formStageAId, userId);
-      const changeStatus = [];
+      let changeStatus = [];
       if (req.body.isSuccessful === "true" || req.body.isSuccessful === true) {
         changeStatus = await FormStageA.updateStatus(formStageAId, {
           status: "completed",
