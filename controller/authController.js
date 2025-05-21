@@ -156,7 +156,8 @@ exports.protect = catchAsync(async (req, res, next) => {
 
   const currentUser = await User.findByPk(decoded.id);
   if (!currentUser) {
-    return next(new AppError("The user belonging to this token does no longer exist.", 401));
+    console.warn(`Rejected token for non-existent user ID: ${decoded.id}`);
+    return next(new AppError('Your session is invalid. Please log in again.', 401));
   }
 
   if (currentUser.changedPasswordAfter(decoded.iat)) {

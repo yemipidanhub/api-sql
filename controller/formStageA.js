@@ -21,16 +21,18 @@ class FormStageAController {
 
     try {
       conn = await db.getConnection();
-      conn = await db.getConnection();
       await conn.beginTransaction();
+      
+      // Clean the input data
+      const cleanData = {
+        ...req.body,
+        terrainType: req.body.terrainType?.toLowerCase() || null, // Add normalization
+        otherObservations: req.body.terrainType?.toLowerCase() === 'sedimentary' 
+          ? req.body.otherObservations?.substring(0, 2000) 
+          : null
+      };
 
-      const formResult = await FormStageA.create(req.body, userId);
-
-      // 1. Create the form record
-      // const [formResult] = await conn.execute(
-      //   `INSERT INTO form_stage_a SET ?`,
-      //   [req.body]
-      // );
+      const formResult = await FormStageA.create(cleanData, userId);
 
       // 2. Process files
       const files = req.files
@@ -81,14 +83,18 @@ class FormStageAController {
       res.status(201).json({
         success: true,
         data: {
-          form: { projectId: formResult.projectId, ...req.body },
-          media: mediaRecords,
-          message:
-            mediaRecords.length === files.length
-              ? "Form and all files processed successfully"
-              : `Form created with ${mediaRecords.length} of ${files.length} files`,
-        },
+          form: { 
+            projectId: formResult.projectId,
+            terrainType: cleanData.terrainType 
+          },
+          media: mediaRecords.map(m => ({
+            id: m.insertId,
+            url: m.fileUrl
+          }))
+        }
       });
+
+
     } catch (error) {
       if (conn) await conn.rollback();
       // if (conn) await conn.rollback();
