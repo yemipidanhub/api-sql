@@ -2,83 +2,96 @@ const generateID = require("../utils/generateProjectID");
 const db = require("../config/mysql2");
 
 class FormStageA {
-  static async create(data, userId) {
+static async create(data, userId) {
+  if (!data.terrainType) {
+    throw new Error("Terrain type is required");
+  }
+
+  // Add data cleansing
+  const cleanData = {
+    ...data,
+    terrainType: data.terrainType.toLowerCase(),
+  };
+
+  // Modify strata processing to prevent SQL injection
+  const strataData = [];
+  let otherObservations = null; 
+  if (cleanData.terrainType === "sedimentary") {
+  otherObservations = data.otherObservations?.substring(0, 2000) || null; 
+  
+  // Add validation
+  if (!data.otherObservations) {
+    throw new Error("Other observations are required for sedimentary terrain");
+  }
+}
+  if (cleanData.terrainType === "sedimentary") {
+    for (let i = 1; i <= 50; i++) {
+      const value = cleanData[`strata${i}`];
+      if (value && typeof value === "string") {
+        strataData.push({
+          layer: i,
+          description: value.substring(0, 255) // Limit length
+        });
+      }
+    }
+  }
     // Validate required parameters
     if (!data || typeof data !== "object") {
       throw new Error("Invalid data provided");
     }
 
-    // Generate project ID (moved before destructuring)
     const projectId = generateID();
     console.log("user id", userId);
-
-    // Set default userId if not provided (but better to enforce authentication)
-    userId = userId || "unknown"; // Consider throwing error instead for production
-
-    // Destructure with default values to prevent undefined errors
-    const {
-      projectType = "",
-      agencyName = "",
-      clientName = "",
-      clientPhone = "",
-      clientEmail = "",
-      state = "",
-      lga = "",
-      town = "",
-      streetAddress = "",
-      latitude = "",
-      longitude = "",
-      consultantName = "",
-      consultantPhone = "",
-      consultantEmail = "",
-      consultantLicenseNumber = "",
-      consultantAddress = "",
-      estimatedOverburden = "",
-      estimatedDepth = "",
-      estimatedFractureDepth = "",
-      estimatedWeatheredZone = "",
-      curveType = "",
-      accessibility = "",
-    } = data;
+    // Prepare basement fields
+    const basementFields = {
+      estimatedOverburden: cleanData.terrainType === "basement" ? data.estimatedOverburden : null,
+      estimatedDepth: cleanData.terrainType === "basement" ? data.estimatedDepth : null,
+      estimatedFractureDepth: cleanData.terrainType === "basement" ? data.estimatedFractureDepth : null,
+      estimatedWeatheredZone: cleanData.terrainType === "basement" ? data.estimatedWeatheredZone : null,
+      curveType: cleanData.terrainType === "basement" ? data.curveType : null
+    };
 
     try {
       const [result] = await db.execute(
         `INSERT INTO form_stage_a (
-                projectId, projectType, agencyName, clientName, clientPhone, clientEmail,
-                state, lga, town, streetAddress, latitude, longitude, consultantName,
-                consultantPhone, consultantEmail, consultantLicense, consultantAddress,
-                estimatedOverburden, estimatedDepth, estimatedFractureDepth,
-                estimatedWeatheredZone, curveType, accessibility, userId
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          projectId, projectType, agencyName, clientName, clientPhone, clientEmail,
+          state, lga, town, streetAddress, latitude, longitude, consultantName,
+          consultantPhone, consultantEmail, consultantLicense, consultantAddress,  
+          terrainType, strata_data, other_observations,
+          estimatedOverburden, estimatedDepth, estimatedFractureDepth,
+          estimatedWeatheredZone, curveType, accessibility, userId
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           projectId,
-          projectType,
-          agencyName,
-          clientName,
-          clientPhone,
-          clientEmail,
-          state,
-          lga,
-          town,
-          streetAddress,
-          latitude,
-          longitude,
-          consultantName,
-          consultantPhone,
-          consultantEmail,
-          consultantLicenseNumber,
-          consultantAddress,
-          estimatedOverburden,
-          estimatedDepth,
-          estimatedFractureDepth,
-          estimatedWeatheredZone,
-          curveType,
-          accessibility,
-          userId,
+          data.projectType || "",
+          data.agencyName || "Not Agency",
+          data.clientName || "",
+          data.clientPhone || "",
+          data.clientEmail || "",
+          data.state || "",
+          data.lga || "",
+          data.town || "",
+          data.streetAddress || "",
+          data.latitude || "",
+          data.longitude || "",
+          data.consultantName || "",
+          data.consultantPhone || "",
+          data.consultantEmail || "",
+          data.consultantLicenseNumber || "",
+          data.consultantAddress || "",
+          cleanData.terrainType || "",
+          strataData ? JSON.stringify(strataData) : null,
+          otherObservations,
+          basementFields.estimatedOverburden,
+          basementFields.estimatedDepth,
+          basementFields.estimatedFractureDepth,
+          basementFields.estimatedWeatheredZone,
+          basementFields.curveType,
+          data.accessibility || "",
+          userId
         ]
       );
 
-      // Return only necessary fields (don't spread entire data object)
       return {
         id: result.insertId,
         projectId,
@@ -121,45 +134,65 @@ static async updateStatus(projectId, data) {
 }
 
 
-  static async update(id, data) {
-    await db.execute(
-      `UPDATE form_stage_a SET 
-        projectType = ?, agencyName = ?, clientName = ?, clientPhone = ?, clientEmail = ?,
-        state = ?, lga = ?, town = ?, streetAddress = ?, latitude = ?, longitude = ?,
-        consultantName = ?, consultantPhone = ?, consultantEmail = ?, consultantLicense = ?,
-        consultantAddress = ?, estimatedOverburden = ?, estimatedDepth = ?,
-        estimatedFractureDepth = ?, estimatedWeatheredZone = ?, curveType = ?,
-        accessibility = ?, status = ?
-      WHERE id = ?`,
-      [
-        data.projectType,
-        data.agencyName,
-        data.clientName,
-        data.clientPhone,
-        data.clientEmail,
-        data.state,
-        data.lga,
-        data.town,
-        data.streetAddress,
-        data.latitude,
-        data.longitude,
-        data.consultantName,
-        data.consultantPhone,
-        data.consultantEmail,
-        data.consultantLicense,
-        data.consultantAddress,
-        data.estimatedOverburden,
-        data.estimatedDepth,
-        data.estimatedFractureDepth,
-        data.estimatedWeatheredZone,
-        data.curveType,
-        data.accessibility,
-        data.status,
-        id,
-      ]
-    );
-    return this.findById(id);
+static async update(id, data) {
+  // Process strata data if terrain is sedimentary
+  let strataData = null;
+  if (data.terrainType === "sedimentary") {
+    strataData = [];
+    // Collect strata fields from 1 to 50
+    for (let i = 1; i <= 50; i++) {
+      const strataValue = data[`strata${i}`];
+      if (strataValue) {
+        strataData.push({
+          layer: i,
+          description: strataValue
+        });
+      }
+      // Remove individual strata fields from data
+      delete data[`strata${i}`];
+    }
+    otherObservations = data.otherObservations?.substring(0, 2000) || null;
+    // Add processed strata data to update
+    data.strata_data = strataData.length > 0 ? JSON.stringify(strataData) : null;
   }
+
+  // Clean up fields based on terrain type
+  if (data.terrainType === "basement") {
+    delete data.strata_data;
+    delete data.other_observations;
+  } else if (data.terrainType === "sedimentary") {
+    delete data.estimatedOverburden;
+    delete data.estimatedDepth;
+    delete data.estimatedFractureDepth;
+    delete data.estimatedWeatheredZone;
+    delete data.curveType;
+  }
+
+  // Build dynamic update query
+  const fields = Object.keys(data)
+    .filter(key => key !== 'id') // Exclude ID from update fields
+    .map(key => `${key} = ?`)
+    .join(', ');
+
+  const values = [
+    ...Object.values(data),
+    id
+  ];
+
+  try {
+    await db.execute(
+      `UPDATE form_stage_a SET
+        ${fields}
+      WHERE id = ?`,
+      values
+    );
+
+    return this.findById(id);
+  } catch (error) {
+    console.error("Update error:", error);
+    throw new Error("Failed to update project record");
+  }
+}
 
   // find all projects for a specific user
   static async findAll(userId) {
