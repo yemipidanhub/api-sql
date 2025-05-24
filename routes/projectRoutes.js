@@ -88,12 +88,18 @@ router.get(
 )
 
 
+// ======================
 // Stage B II Routes
+// ======================
 router.post(
   "/stage-b-II/:formStageAId",
   authenticate,
   upload,
   FormStageBIIController.create.bind(FormStageBIIController)
+)
+router.get(
+  "/stage-b-II/findProject/:projectId",
+  FormStageBIIController.getProject.bind(FormStageBIIController)
 )
 
 // ======================

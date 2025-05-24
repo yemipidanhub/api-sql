@@ -52,6 +52,9 @@ static async create(data, userId) {
       estimatedWeatheredZone: cleanData.terrainType === "basement" ? data.estimatedWeatheredZone : null,
       curveType: cleanData.terrainType === "basement" ? data.curveType : null
     };
+    const sedimentaryFields = {
+      estimatedDepth: data.estimatedDepth
+    }
 
     try {
       const [result] = await db.execute(
@@ -85,7 +88,7 @@ static async create(data, userId) {
           strataData ? JSON.stringify(strataData) : null,
           otherObservations,
           basementFields.estimatedOverburden,
-          basementFields.estimatedDepth,
+          basementFields.estimatedDepth || sedimentaryFields.estimatedDepth || "",
           basementFields.estimatedFractureDepth,
           basementFields.estimatedWeatheredZone,
           basementFields.curveType,

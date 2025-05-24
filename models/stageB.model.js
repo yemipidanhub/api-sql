@@ -6,56 +6,60 @@ class FormStageB {
     console.log(formStageAId);
     console.log(userId);
 
-    console.log({
-      formStageAId,
-      drillingCompany: data.drillingCompany,
-      drillingLicense: data.drillingLicense,
-      permitNo: data.permitNo,
-      permitIssueDate: data.permitIssueDate,
-      actualOverburden: data.actualOverburden,
-      fracturedZone: data.fracturedZone,
-      weatheredZone: data.weatheredZone,
-      depthDrilled: data.depthDrilled,
-      drilledDiameter: data.drilledDiameter,
-      drillingMethod: data.drillingMethod,
-      rods: data.rods,
-      casingDiameter: data.casingDiameter,
-      casingType: data.casingType,
-      casingLength: data.casingLength,
-      casingCount: data.casingCount,
-      gravelPackingSize: data.gravelPackingSize,
-      isSuccessful: data.isSuccessful,
-      reasonUnsuccessful: data.reasonUnsuccessful,
-      userId,
-    });
-
+    // console.log({
+    //   formStageAId,
+    //   drillingCompany: data.drillingCompany,
+    //   drillingLicense: data.drillingLicense,
+    //   permitNo: data.permitNo,
+    //   permitIssueDate: data.permitIssueDate,
+    //   actualOverburden: data.actualOverburden,
+    //   fracturedZone: data.fracturedZone,
+    //   weatheredZone: data.weatheredZone,
+    //   depthDrilled: data.depthDrilled,
+    //   drilledDiameter: data.drilledDiameter,
+    //   drillingMethod: data.drillingMethod,
+    //   rods: data.rods,
+    //   casingDiameter: data.casingDiameter,
+    //   casingType: data.casingType,
+    //   casingLength: data.casingLength,
+    //   casingCount: data.casingCount,
+    //   gravelPackingSize: data.gravelPackingSize,
+    //   isSuccessful: data.isSuccessful,
+    //   reasonUnsuccessful: data.reasonUnsuccessful,
+    //   userId,
+    // });
+    let isSuccessful;
+    if(data.isSuccessful === "true"){
+      isSuccessful = true
+    }
     const [result] = await db.execute(
       `INSERT INTO form_stage_b (
         formStageAId, drillingCompany, drillingLicense, permitNo, permitIssueDate,
         actualOverburden, fracturedZone, weatheredZone, depthDrilled, drilledDiameter,
-        drillingMethod, rods, casingDiameter, casingType, casingLength, casingCount,
+        drillingMethod, rods, stratas, casingDiameter, casingType, casingLength, casingCount,
         gravelPackingSize, isSuccessful, reasonUnsuccessful, userId
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         formStageAId,
         data.drillingCompany,
         data.drillingLicense,
         data.permitNo,
         data.permitIssueDate,
-        data.actualOverburden,
-        data.fracturedZone,
+        data.actualOverburden || "",
+        data.fracturedZone || "",
         data.weatheredZone,
         data.depthDrilled,
         data.drilledDiameter,
         data.drillingMethod,
         JSON.stringify(data.rods || []),
+        JSON.stringify(data.stratas || []),
         data.casingDiameter,
         data.casingType,
         data.casingLength,
         data.casingCount,
         data.gravelPackingSize,
-        data.isSuccessful,
-        data.reasonUnsuccessful,
+        isSuccessful,
+        data.reasonUnsuccessful || "",
         userId,
       ]
     );

@@ -14,23 +14,38 @@ class FormStageAController {
 
     const userId = req.user.id;
     console.log("Processing request for user:", userId);
-    console.log("Received body:", req.body);
+    console.log("Received body:", req.body.formData);
     console.log("Received files:", req.files);
+    console.log("checking", req.body);
+
+    let formData;
+    try {
+      formData = JSON.parse(req.body.formData); // ✅ Parse string into object
+    } catch (error) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid formData format",
+      });
+    }
 
     let conn;
 
     try {
       conn = await db.getConnection();
       await conn.beginTransaction();
-      
+
       // Clean the input data
       const cleanData = {
-        ...req.body,
-        terrainType: req.body.terrainType?.toLowerCase() || null, // Add normalization
-        otherObservations: req.body.terrainType?.toLowerCase() === 'sedimentary' 
-          ? req.body.otherObservations?.substring(0, 2000) 
-          : null
+        ...formData,
+        terrainType: formData.terrainType?.toLowerCase() || null,
+        otherObservations:
+          formData.terrainType?.toLowerCase() === "sedimentary"
+            ? formData.otherObservations?.substring(0, 2000)
+            : null,
+        userId,
       };
+
+      // console.log("Clean Data:", cleanData);
 
       const formResult = await FormStageA.create(cleanData, userId);
 
@@ -83,18 +98,16 @@ class FormStageAController {
       res.status(201).json({
         success: true,
         data: {
-          form: { 
+          form: {
             projectId: formResult.projectId,
-            terrainType: cleanData.terrainType 
+            terrainType: cleanData.terrainType,
           },
-          media: mediaRecords.map(m => ({
+          media: mediaRecords.map((m) => ({
             id: m.insertId,
-            url: m.fileUrl
-          }))
-        }
+            url: m.fileUrl,
+          })),
+        },
       });
-
-
     } catch (error) {
       if (conn) await conn.rollback();
       // if (conn) await conn.rollback();

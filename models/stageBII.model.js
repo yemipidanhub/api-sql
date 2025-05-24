@@ -25,6 +25,14 @@ class FormStageBII {
     );
     return { ...data, id: result.insertId, formStageAId };
   }
+
+  static async findByProjectId(projectId) {
+    const [rows] = await db.execute(
+      "SELECT * FROM form_stage_b_ii WHERE formStageAId = ?",
+      [projectId]
+    );
+    return rows[0];
+  }
 }
 
 module.exports = FormStageBII;

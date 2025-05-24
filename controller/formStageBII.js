@@ -96,6 +96,42 @@ class FormStageBIIController {
       });
     }
   }
+
+  static async getProject(req, res) {
+    let conn;
+    try {
+      conn = await db.getConnection();
+      await conn.beginTransaction();
+
+      const { projectId } = req.params;
+      const stageBII = await FormStageBII.findByProjectId(projectId);
+
+      if (!stageBII) {
+        await conn.rollback();
+        return res.status(404).json({
+          success: false,
+          message: "Stage B II form not found",
+        });
+      }
+
+      await conn.commit();
+      res.status(200).json({
+        success: true,
+        message: "Form Stage B II found",
+        data: stageBII,
+      });
+    } catch (error) {
+      if (conn) await conn.rollback();
+      console.log("Error:", error);
+      res.status(500).json({
+        success: false,
+        message: "An error occurred while fetching the form",
+        error: error.message,
+      });
+    } finally {
+      if (conn) conn.release();
+    }
+  }
 }
 
 module.exports = FormStageBIIController;
